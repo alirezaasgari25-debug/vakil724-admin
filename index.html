@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وکیل۷۲۴ | پنل مدیریت</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="mark">و۲۴</div>
+    <h1>ورود به پنل مدیریت وکیل۷۲۴</h1>
+    <div class="sub">سامانه مدیریت پرونده‌های حقوقی</div>
+    <div id="login-error" class="login-error"></div>
+    <form id="login-form">
+      <div class="field">
+        <label for="username">نام کاربری</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">رمز عبور</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary">ورود</button>
+    </form>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 3 7v2h18V7l-9-4Z"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9M3 21h18"/></svg></span>
+      <span class="text"><div class="title">وکیل۷۲۴</div><div class="subtitle">پنل مدیریت</div></span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="side-link active" data-view="dashboard"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span><span class="label">داشبورد</span></div>
+      <div class="side-link" data-view="cases"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></span><span class="label">پرونده‌ها</span></div>
+      <div class="side-link" data-view="lawyers"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span class="label">وکلاء</span></div>
+      <div class="side-link" data-view="clients"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><circle cx="17.5" cy="8.5" r="2.7"/><path d="M15 14.2c2.8.3 5 2.5 5 5.8"/></svg></span><span class="label">موکلان</span></div>
+      <div class="side-link" data-view="transactions" id="menu-transactions"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg></span><span class="label">تراکنش‌ها</span></div>
+      <div class="side-link" data-view="reports"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></span><span class="label">گزارش‌ها</span></div>
+      <div class="side-link" data-view="settings"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></span><span class="label">تنظیمات</span></div>
+      <div class="side-link" data-view="users"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8.5 8 9.5 4.5-1 8-4.5 8-9.5V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span class="label">مدیریت کاربران</span></div>
+      <div class="side-link" data-view="support"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 18 0v5a2 2 0 0 1-2 2h-1v-7h3M3 17v-5h3v7H5a2 2 0 0 1-2-2Z"/></svg></span><span class="label">پشتیبانی <span id="support-badge" class="badge hidden"></span></span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="side-link logout" id="logout-btn"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></span><span class="label">خروج از پنل</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <button class="hamburger-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <h2 id="page-title">داشبورد</h2>
+      </div>
+      <div class="topbar-actions">
+        <div class="digital-clock" id="digital-clock">--:--:--</div>
+        <div class="icon-btn" id="notif-btn" title="اعلان‌ها">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="19" height="19"><path d="M18 8a6 6 0 0 0-12 0c0 5-2 6-2 6h16s-2-1-2-6"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span id="notif-badge" class="notif-badge hidden"></span>
+        </div>
+        <div class="icon-btn" id="dark-toggle" title="حالت شب/روز">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
+        </div>
+        <div class="user-chip" id="user-chip">
+          <span class="avatar" id="user-avatar">ع</span>
+          <span class="info"><span class="name" id="user-name">—</span><span class="role" id="user-role">—</span></span>
+          <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="m6 9 6 6 6-6"/></svg></span>
+          <div class="dropdown-menu" id="user-menu">
+            <div class="dropdown-item" data-view="settings">تنظیمات حساب</div>
+            <div class="dropdown-item danger" id="menu-logout">خروج از پنل</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div id="view-dashboard" class="view">
+        <div class="stat-cards" id="stat-cards"></div>
+        <div class="panel">
+          <div class="panel-head"><h3>پرونده‌های در انتظار رسیدگی</h3></div>
+          <div class="pending-grid">
+            <div class="pending-box"><div class="n" id="pending-total">0</div><div class="l">در انتظار پذیرش</div></div>
+            <div class="pending-box"><div class="n" id="pending-active">0</div><div class="l">درحال انجام</div></div>
+            <div class="pending-box"><div class="n" id="pending-done">0</div><div class="l">مختومه</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>فعالیت‌های اخیر</h3></div>
+          <div id="recent-activity"></div>
+        </div>
+      </div>
+
+      <div id="view-cases" class="view hidden">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="toolbar"><input type="search" id="cases-search" placeholder="جستجوی پرونده…"></div>
+          </div>
+          <table>
+            <thead><tr><th>موضوع</th><th>موکل</th><th>وکیل</th><th>وضعیت</th><th>مبلغ اولیه</th><th>تاریخ ثبت</th></tr></thead>
+            <tbody id="cases-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-lawyers" class="view hidden">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="toolbar"><input type="search" id="lawyers-search" placeholder="جستجوی وکیل…"></div>
+          </div>
+          <table>
+            <thead><tr><th>نام</th><th>تخصص‌ها</th><th>استان اصلی</th><th>تلفن</th><th>وضعیت احراز هویت</th><th>وضعیت دسترسی</th></tr></thead>
+            <tbody id="lawyers-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-clients" class="view hidden">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="toolbar"><input type="search" id="clients-search" placeholder="جستجوی موکل…"></div>
+          </div>
+          <table>
+            <thead><tr><th>نام</th><th>کد ملی</th><th>تلفن</th><th>وضعیت احراز هویت</th><th>تاریخ ثبت‌نام</th></tr></thead>
+            <tbody id="clients-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-transactions" class="view hidden">
+        <div class="stat-cards" id="transactions-summary"></div>
+        <div class="panel">
+          <div class="panel-head"><h3>پرداخت‌های موکلین</h3></div>
+          <table>
+            <thead><tr><th>موضوع پرونده</th><th>موکل</th><th>مبلغ پرداختی</th><th>تاریخ پرداخت</th></tr></thead>
+            <tbody id="client-payments-body"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>کمیسیون وکلا</h3></div>
+          <div class="toolbar" style="margin-bottom:12px"><input type="search" id="transactions-search" placeholder="جستجوی تراکنش…"></div>
+          <table>
+            <thead><tr><th>پرونده</th><th>وکیل</th><th>مبلغ کمیسیون</th><th>وضعیت پرداخت</th><th>تاریخ اتمام</th><th>عملیات</th></tr></thead>
+            <tbody id="transactions-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-reports" class="view hidden">
+        <div class="panel">
+          <div class="panel-head"><h3>پرونده‌ها به تفکیک وضعیت</h3></div>
+          <table>
+            <thead><tr><th>وضعیت</th><th>تعداد</th><th>درصد</th></tr></thead>
+            <tbody id="reports-status-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-settings" class="view hidden">
+        <div class="panel">
+          <div class="panel-head"><h3>ظاهر پنل</h3></div>
+          <p style="color:var(--text-muted);font-size:13.5px;margin-bottom:14px">تغییر تم روشن/تیره پنل مدیریت</p>
+          <button class="btn btn-outline" id="settings-dark-toggle">تغییر به حالت تیره / روشن</button>
+        </div>
+      </div>
+
+      <div id="view-users" class="view hidden">
+        <div class="panel">
+          <div class="panel-head"><h3>کاربران پنل مدیریت</h3></div>
+          <table>
+            <thead><tr><th>نام کامل</th><th>نام کاربری</th><th>سمت</th><th>نقش</th></tr></thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-support" class="view hidden">
+        <div class="panel">
+          <div class="panel-head"><h3>پیام‌های تماس با ما</h3></div>
+          <table>
+            <thead><tr><th>نام</th><th>تلفن</th><th>پیام</th><th>تاریخ</th><th>عملیات</th></tr></thead>
+            <tbody id="support-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>
