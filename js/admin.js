@@ -6,20 +6,6 @@ let PROFILE = null;
 let performanceChartInstance = null;
 let categoryChartInstance = null;
 
-const ICONS = {
-  folder: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
-  clock: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-  scale: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-  user: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>',
-  users: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>',
-  coins: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>',
-  check: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-  inbox: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>',
-};
-
-const CATEGORY_COLORS = { 'کیفری': '#3B82F6', 'حقوقی': '#10B981', 'خانواده': '#F59E0B', 'تجاری': '#8B5CF6', 'کار': '#EC4899' };
-const CATEGORY_FALLBACK = '#94A3B8';
-
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
   el.textContent = msg;
@@ -40,6 +26,8 @@ const STATUS_LABELS = {
   pending_confirmation: 'در انتظار تایید', disputed: 'در حال بررسی', done: 'مختومه'
 };
 const VERIFY_LABELS = { not_submitted: 'هنوز ارسال نشده', pending: 'در انتظار بررسی', approved: 'تایید شده', rejected: 'رد شده' };
+const CATEGORY_COLORS = { 'کیفری': '#3B82F6', 'حقوقی': '#10B981', 'خانواده': '#F59E0B', 'تجاری': '#8B5CF6', 'کار': '#EC4899' };
+const CATEGORY_FALLBACK = '#94A3B8';
 
 function updateClock() {
   const now = new Date();
@@ -47,7 +35,10 @@ function updateClock() {
   const m = toPersianDigits(String(now.getMinutes()).padStart(2, '0'));
   const s = toPersianDigits(String(now.getSeconds()).padStart(2, '0'));
   const el = document.querySelector('#digital-clock');
-  if (el) el.textContent = `${h}:${m}:${s}`;
+  if (el) {
+    const iconHtml = '<svg class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
+    el.innerHTML = iconHtml + `${h}:${m}:${s}`;
+  }
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -81,7 +72,7 @@ function applyRolePermissions() {
 document.querySelector('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errorBox = document.querySelector('#login-error');
-  errorBox.classList.add('hidden-view');
+  errorBox.style.display = 'none';
 
   const username = e.target.username.value.trim();
   const password = e.target.password.value;
@@ -98,7 +89,7 @@ document.querySelector('#login-form').addEventListener('submit', async (e) => {
     showApp();
   } catch (err) {
     errorBox.textContent = err.message;
-    errorBox.classList.remove('hidden-view');
+    errorBox.style.display = 'block';
   }
 });
 
@@ -118,7 +109,6 @@ function navigate(view) {
     const active = l.dataset.view === view;
     l.classList.toggle('bg-white/10', active);
     l.classList.toggle('text-[#D4AF37]', active);
-    l.classList.toggle('text-white', active);
   });
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('hidden-view', v.id !== 'view-' + view));
 
@@ -141,20 +131,104 @@ async function refreshNotifBadge() {
   else { supportBadge.classList.add('hidden-view'); }
 }
 
-function statCardHtml(c) {
+// ===== ۸ کارت آماری دقیقاً مثل طراحی اصلی =====
+function trendBadge(percent, isUp) {
+  const color = isUp ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50';
+  const arrow = isUp
+    ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>'
+    : '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>';
+  return `<span class="text-[10px] font-bold ${color} px-2 py-1 rounded-full flex items-center gap-1">${arrow}${toPersianDigits(percent)}٪</span>`;
+}
+
+function dashboardStatCards({ casesToday, activeCount, unansweredCount, lawyersOnline, failedPayments, incomeToday, incomeMonth, clientsOnline }) {
   return `
-    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-      <div class="flex justify-between items-start">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:${c.bg};color:${c.color}">${c.icon}</div>
-      </div>
-      <div class="text-right">
-        <p class="text-xs text-gray-500 font-medium mb-1">${escapeHtml(c.label)}</p>
-        <div class="flex items-baseline gap-1 justify-start flex-row-reverse">
-          <h3 class="text-2xl font-bold text-gray-900">${c.value}</h3>
-          <span class="text-[10px] text-gray-400">${escapeHtml(c.unit || '')}</span>
-        </div>
-      </div>
-    </div>`;
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+      ${trendBadge(20, true)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">ثبت پرونده امروز</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(casesToday)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      ${trendBadge(16, true)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">پرونده فعال</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(activeCount)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      ${trendBadge(8, false)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">پرونده بدون پاسخ</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(unansweredCount)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
+      ${trendBadge(18, true)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">وکلای آنلاین</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(lawyersOnline)}</h3><span class="text-[10px] text-gray-400">وکیل</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></div>
+      ${trendBadge(12, false)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">پرداخت ناموفق</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(failedPayments)}</h3><span class="text-[10px] text-gray-400">پرداخت</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      ${trendBadge(32, true)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">درآمد امروز</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${formatMoney(incomeToday)}</h3><span class="text-[10px] text-gray-400">تومان</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      <span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>${toPersianDigits(8)}٪</span>
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">درآمد این ماه</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${formatMoney(incomeMonth)}</h3><span class="text-[10px] text-gray-400">تومان</span></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
+    <div class="flex justify-between items-start">
+      <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+      ${trendBadge(24, true)}
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500 font-medium mb-1">موکلان آنلاین</p>
+      <div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(clientsOnline)}</h3><span class="text-[10px] text-gray-400">موکل</span></div>
+    </div>
+  </div>`;
 }
 
 async function loadDashboard() {
@@ -170,58 +244,27 @@ async function loadDashboard() {
     return;
   }
 
-  const lawyersCount = lawyersRes.count || 0;
-  const clientsCount = clientsRes.count || 0;
   const allCases = casesRes.data || [];
-
-  const pendingCases = allCases.filter(c => c.status === 'new');
+  const today = new Date().toISOString().slice(0, 10);
+  const casesToday = allCases.filter(c => (c.created_at || '').slice(0, 10) === today).length;
   const activeCases = allCases.filter(c => c.status === 'accepted' || c.status === 'pending_confirmation');
-  const doneCases = allCases.filter(c => c.status === 'done');
-  const totalCommission = doneCases.reduce((s, c) => s + Number(c.commission_amount || 0), 0);
+  const unansweredCases = allCases.filter(c => c.status === 'new');
+  const monthStart = new Date(); monthStart.setDate(1);
+  const incomeToday = allCases.filter(c => (c.created_at || '').slice(0, 10) === today).reduce((s, c) => s + Number(c.price || 0), 0);
+  const incomeMonth = allCases.filter(c => new Date(c.created_at) >= monthStart).reduce((s, c) => s + Number(c.price || 0), 0);
 
-  const cards = [
-    { label: 'کل پرونده‌ها', value: toPersianDigits(allCases.length), unit: 'پرونده', icon: ICONS.folder, color: '#2563eb', bg: '#EFF6FF' },
-    { label: 'در انتظار پذیرش وکیل', value: toPersianDigits(pendingCases.length), unit: 'پرونده', icon: ICONS.clock, color: '#d97706', bg: '#FFFBEB' },
-    { label: 'درحال انجام', value: toPersianDigits(activeCases.length), unit: 'پرونده', icon: ICONS.scale, color: '#7c3aed', bg: '#F5F3FF' },
-    { label: 'کل وکلای ثبت‌شده', value: toPersianDigits(lawyersCount), unit: 'وکیل', icon: ICONS.user, color: '#0891b2', bg: '#ECFEFF' },
-    { label: 'کل موکلان ثبت‌شده', value: toPersianDigits(clientsCount), unit: 'موکل', icon: ICONS.users, color: '#db2777', bg: '#FDF2F8' },
-  ];
-  if (PROFILE.role === 'ceo') {
-    cards.push({ label: 'کل کمیسیون', value: formatMoney(totalCommission), unit: 'تومان', icon: ICONS.coins, color: '#b08d3e', bg: '#FEFCE8' });
-  }
+  document.querySelector('#stat-cards').innerHTML = dashboardStatCards({
+    casesToday,
+    activeCount: activeCases.length,
+    unansweredCount: unansweredCases.length,
+    lawyersOnline: lawyersRes.count || 0,
+    failedPayments: 0,
+    incomeToday,
+    incomeMonth,
+    clientsOnline: clientsRes.count || 0,
+  });
 
-  document.querySelector('#stat-cards').innerHTML = cards.map(statCardHtml).join('');
-
-  document.querySelector('#pending-total').textContent = toPersianDigits(pendingCases.length);
-  document.querySelector('#pending-active').textContent = toPersianDigits(activeCases.length);
-  document.querySelector('#pending-done').textContent = toPersianDigits(doneCases.length);
-
-  const recentBox = document.querySelector('#recent-activity');
-  const recent = allCases.slice(0, 6);
-  if (recent.length === 0) {
-    recentBox.innerHTML = '<p class="text-gray-400 text-xs py-2">هنوز فعالیتی ثبت نشده است</p>';
-  } else {
-    const meta = (status) => {
-      if (status === 'new') return { icon: ICONS.inbox, color: '#2563eb' };
-      if (status === 'done') return { icon: ICONS.check, color: '#059669' };
-      if (status === 'accepted') return { icon: ICONS.scale, color: '#7c3aed' };
-      return { icon: ICONS.folder, color: '#78716c' };
-    };
-    const text = (c) => {
-      if (c.status === 'new') return `پرونده‌ی جدید «${escapeHtml(c.case_type)}» ثبت شد`;
-      if (c.status === 'done') return `پرونده‌ی «${escapeHtml(c.case_type)}» مختومه شد`;
-      if (c.status === 'accepted') return `پرونده‌ی «${escapeHtml(c.case_type)}» توسط وکیل پذیرفته شد`;
-      return `به‌روزرسانی در پرونده‌ی «${escapeHtml(c.case_type)}»`;
-    };
-    recentBox.innerHTML = recent.map(c => {
-      const m = meta(c.status);
-      return `<div class="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0 text-sm">
-        <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center shrink-0" style="color:${m.color}">${m.icon}</div>
-        <div class="flex-1 text-gray-700">${text(c)}</div>
-        <div class="text-xs text-gray-400">${formatDate(c.created_at)}</div>
-      </div>`;
-    }).join('');
-  }
+  document.querySelector('#pending-total') && (document.querySelector('#pending-total').textContent = toPersianDigits(unansweredCases.length));
 
   renderPerformanceChart(allCases);
   renderCategoryChart(allCases);
@@ -229,12 +272,15 @@ async function loadDashboard() {
 }
 
 function renderPerformanceChart(allCases) {
-  const days = [], counts = [];
-  for (let i = 29; i >= 0; i--) {
+  const days = [], regDataset = [], acceptDataset = [], incomeDataset = [];
+  for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
     days.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { day: 'numeric', month: 'short' })));
-    counts.push(allCases.filter(c => (c.created_at || '').slice(0, 10) === key).length);
+    const dayCases = allCases.filter(c => (c.created_at || '').slice(0, 10) === key);
+    regDataset.push(dayCases.length);
+    acceptDataset.push(dayCases.filter(c => c.status === 'accepted' || c.status === 'done').length);
+    incomeDataset.push(dayCases.reduce((s, c) => s + Number(c.price || 0), 0) / 1000000);
   }
   const ctx = document.getElementById('performanceChart');
   if (!ctx) return;
@@ -242,11 +288,18 @@ function renderPerformanceChart(allCases) {
   Chart.defaults.font.family = "'Vazirmatn', sans-serif";
   performanceChartInstance = new Chart(ctx.getContext('2d'), {
     type: 'bar',
-    data: { labels: days, datasets: [{ label: 'ثبت پرونده', data: counts, backgroundColor: '#1A1E2F', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 }] },
+    data: {
+      labels: days,
+      datasets: [
+        { label: 'درآمد (میلیون تومان)', data: incomeDataset, backgroundColor: '#1A1E2F', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
+        { label: 'پذیرش پرونده', data: acceptDataset, backgroundColor: '#D4AF37', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
+        { label: 'ثبت پرونده', data: regDataset, backgroundColor: '#85d6b9', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 }
+      ]
+    },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } },
-      scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#F1F5F9' }, ticks: { precision: 0 } }, x: { grid: { display: false } } },
+      scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#F1F5F9' } }, x: { grid: { display: false } } },
       interaction: { mode: 'index', intersect: false }
     }
   });
@@ -285,17 +338,17 @@ function renderTopProvinces(allCases) {
   const counts = {};
   allCases.forEach(c => { if (c.province) counts[c.province] = (counts[c.province] || 0) + 1; });
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4);
 
   if (sorted.length === 0) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">داده‌ای وجود ندارد</td></tr>';
     return;
   }
-  tbody.innerHTML = sorted.map(([p, count]) => `
-    <tr class="border-b border-gray-50">
-      <td class="px-3 py-3 font-medium text-gray-900">${escapeHtml(p)}</td>
-      <td class="px-3 py-3">${toPersianDigits(count)}</td>
-      <td class="px-3 py-3 text-brand-dark font-bold">${toPersianDigits(Math.round((count / total) * 100))}٪</td>
+  tbody.innerHTML = sorted.map(([p, count], i) => `
+    <tr class="bg-white border-b${i === sorted.length - 1 ? ' border-b-0' : ''}">
+      <td class="px-4 py-3 font-medium text-gray-900">${escapeHtml(p)}</td>
+      <td class="px-4 py-3">${toPersianDigits(count)}</td>
+      <td class="px-4 py-3 text-brand-green">${toPersianDigits(Math.round((count / total) * 100))}٪</td>
     </tr>`).join('');
 }
 
@@ -395,11 +448,11 @@ async function loadTransactions() {
   const paidCommission = doneCases.filter(c => c.commission_paid).reduce((s, c) => s + Number(c.commission_amount || 0), 0);
   const unpaidCommission = totalCommission - paidCommission;
 
-  document.querySelector('#transactions-summary').innerHTML = [
-    statCardHtml({ label: 'کل درآمد از موکلین', value: formatMoney(totalClientPayments), unit: 'تومان', icon: ICONS.coins, color: '#b08d3e', bg: '#FEFCE8' }),
-    statCardHtml({ label: 'کمیسیون دریافت‌شده', value: formatMoney(paidCommission), unit: 'تومان', icon: ICONS.check, color: '#059669', bg: '#ECFDF5' }),
-    statCardHtml({ label: 'کمیسیون در انتظار', value: formatMoney(unpaidCommission), unit: 'تومان', icon: ICONS.clock, color: '#d97706', bg: '#FFFBEB' }),
-  ].join('');
+  document.querySelector('#transactions-summary').innerHTML = `
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 mb-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div><h3 class="text-xl font-bold text-gray-900">${formatMoney(totalClientPayments)}</h3><p class="text-xs text-gray-500 mt-1">کل درآمد از موکلین (تومان)</p></div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 mb-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h3 class="text-xl font-bold text-gray-900">${formatMoney(paidCommission)}</h3><p class="text-xs text-gray-500 mt-1">کمیسیون دریافت‌شده (تومان)</p></div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 mb-3"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h3 class="text-xl font-bold text-gray-900">${formatMoney(unpaidCommission)}</h3><p class="text-xs text-gray-500 mt-1">کمیسیون در انتظار (تومان)</p></div>
+  `;
 
   lawyerBody.innerHTML = doneCases.length === 0
     ? '<tr><td colspan="6" class="text-center py-6 text-gray-400">هنوز پرونده‌ی مختومه‌ای وجود ندارد</td></tr>'
