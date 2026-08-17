@@ -3,6 +3,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let PROFILE = null;
+let performanceChartInstance = null;
+let categoryChartInstance = null;
 
 const ICONS = {
   folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>',
@@ -14,6 +16,15 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 5-5"/></svg>',
   inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h4l2 3h4l2-3h4M4 12l1.5-6h13L20 12M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg>',
 };
+
+const CATEGORY_COLORS = {
+  'کیفری': '#3B82F6',
+  'حقوقی': '#10B981',
+  'خانواده': '#F59E0B',
+  'تجاری': '#8B5CF6',
+  'کار': '#EC4899',
+};
+const CATEGORY_FALLBACK = '#94A3B8';
 
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
@@ -154,6 +165,7 @@ function navigate(view) {
 }
 document.querySelectorAll('.side-link[data-view]').forEach(l => l.addEventListener('click', () => navigate(l.dataset.view)));
 document.querySelectorAll('.dropdown-item[data-view]').forEach(l => l.addEventListener('click', () => navigate(l.dataset.view)));
+document.querySelectorAll('.quick-btn[data-view]').forEach(l => l.addEventListener('click', () => navigate(l.dataset.view)));
 
 async function refreshNotifBadge() {
   const { count, error } = await sb
@@ -228,32 +240,137 @@ async function loadDashboard() {
 
   if (recent.length === 0) {
     recentBox.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:10px 0">هنوز فعالیتی ثبت نشده است</p>';
+  } else {
+    const activityMeta = (status) => {
+      if (status === 'new') return { icon: ICONS.inbox, color: '#2563eb' };
+      if (status === 'done') return { icon: ICONS.check, color: '#059669' };
+      if (status === 'accepted') return { icon: ICONS.scale, color: '#7c3aed' };
+      return { icon: ICONS.folder, color: '#78716c' };
+    };
+    const activityText = (c) => {
+      if (c.status === 'new') return `پرونده‌ی جدید «${escapeHtml(c.case_type)}» ثبت شد`;
+      if (c.status === 'done') return `پرونده‌ی «${escapeHtml(c.case_type)}» مختومه شد`;
+      if (c.status === 'accepted') return `پرونده‌ی «${escapeHtml(c.case_type)}» توسط وکیل پذیرفته شد`;
+      return `به‌روزرسانی در پرونده‌ی «${escapeHtml(c.case_type)}»`;
+    };
+
+    recentBox.innerHTML = recent.map(c => {
+      const meta = activityMeta(c.status);
+      return `
+      <div class="activity-item">
+        <div class="activity-icon" style="color:${meta.color}">${meta.icon}</div>
+        <div class="activity-text">${activityText(c)}</div>
+        <div class="activity-time">${formatDate(c.created_at)}</div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  renderPerformanceChart(allCases);
+  renderCategoryChart(allCases);
+  renderTopProvinces(allCases);
+}
+
+function renderPerformanceChart(allCases) {
+  const days = [];
+  const counts = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    days.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { day: 'numeric', month: 'short' })));
+    counts.push(allCases.filter(c => (c.created_at || '').slice(0, 10) === key).length);
+  }
+
+  const ctx = document.getElementById('performanceChart');
+  if (!ctx) return;
+  if (performanceChartInstance) performanceChartInstance.destroy();
+
+  Chart.defaults.font.family = "'Vazirmatn', sans-serif";
+  performanceChartInstance = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'پرونده ثبت‌شده',
+        data: counts,
+        backgroundColor: '#1A1E2F',
+        borderRadius: 8,
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#F1F5F9' }, ticks: { precision: 0 } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderCategoryChart(allCases) {
+  const counts = {};
+  allCases.forEach(c => {
+    const type = c.case_type || 'سایر';
+    counts[type] = (counts[type] || 0) + 1;
+  });
+
+  const labels = Object.keys(counts);
+  const values = Object.values(counts);
+  const total = values.reduce((a, b) => a + b, 0);
+  const colors = labels.map(l => CATEGORY_COLORS[l] || CATEGORY_FALLBACK);
+
+  const ctx = document.getElementById('categoryChart');
+  if (!ctx) return;
+  if (categoryChartInstance) categoryChartInstance.destroy();
+
+  if (total === 0) {
+    document.querySelector('#category-legend').innerHTML = '<span style="color:var(--text-muted);font-size:12px">داده‌ای وجود ندارد</span>';
     return;
   }
 
-  const activityMeta = (status) => {
-    if (status === 'new') return { icon: ICONS.inbox, color: '#2563eb' };
-    if (status === 'done') return { icon: ICONS.check, color: '#059669' };
-    if (status === 'accepted') return { icon: ICONS.scale, color: '#7c3aed' };
-    return { icon: ICONS.folder, color: '#78716c' };
-  };
-  const activityText = (c) => {
-    if (c.status === 'new') return `پرونده‌ی جدید «${escapeHtml(c.case_type)}» ثبت شد`;
-    if (c.status === 'done') return `پرونده‌ی «${escapeHtml(c.case_type)}» مختومه شد`;
-    if (c.status === 'accepted') return `پرونده‌ی «${escapeHtml(c.case_type)}» توسط وکیل پذیرفته شد`;
-    return `به‌روزرسانی در پرونده‌ی «${escapeHtml(c.case_type)}»`;
-  };
+  categoryChartInstance = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { display: false } } }
+  });
 
-  recentBox.innerHTML = recent.map(c => {
-    const meta = activityMeta(c.status);
-    return `
-    <div class="activity-item">
-      <div class="activity-icon" style="color:${meta.color}">${meta.icon}</div>
-      <div class="activity-text">${activityText(c)}</div>
-      <div class="activity-time">${formatDate(c.created_at)}</div>
-    </div>
-  `;
+  document.querySelector('#category-legend').innerHTML = labels.map((l, i) => {
+    const pct = Math.round((values[i] / total) * 100);
+    return `<div class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${escapeHtml(l)} (${toPersianDigits(pct)}٪)</div>`;
   }).join('');
+}
+
+function renderTopProvinces(allCases) {
+  const tbody = document.querySelector('#top-provinces-body');
+  if (!tbody) return;
+
+  const counts = {};
+  allCases.forEach(c => {
+    const p = c.province;
+    if (!p) return;
+    counts[p] = (counts[p] || 0) + 1;
+  });
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:16px;color:#999">داده‌ای وجود ندارد</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(([province, count]) => `
+    <tr>
+      <td>${escapeHtml(province)}</td>
+      <td>${toPersianDigits(count)}</td>
+      <td>${toPersianDigits(Math.round((count / total) * 100))}٪</td>
+    </tr>
+  `).join('');
 }
 
 async function loadCases() {

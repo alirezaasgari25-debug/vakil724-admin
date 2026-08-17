@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/admin.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -84,14 +85,53 @@
 
       <div id="view-dashboard" class="view">
         <div class="stat-cards" id="stat-cards"></div>
+
         <div class="panel">
-          <div class="panel-head"><h3>پرونده‌های در انتظار رسیدگی</h3></div>
-          <div class="pending-grid">
-            <div class="pending-box"><div class="n" id="pending-total">0</div><div class="l">در انتظار پذیرش</div></div>
-            <div class="pending-box"><div class="n" id="pending-active">0</div><div class="l">درحال انجام</div></div>
-            <div class="pending-box"><div class="n" id="pending-done">0</div><div class="l">مختومه</div></div>
+          <div class="panel-head">
+            <h3>روند ثبت پرونده در ۳۰ روز اخیر</h3>
+          </div>
+          <div class="chart-box">
+            <canvas id="performanceChart"></canvas>
           </div>
         </div>
+
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-head"><h3>پرونده‌های در انتظار رسیدگی</h3></div>
+            <div class="pending-grid">
+              <div class="pending-box"><div class="n" id="pending-total">0</div><div class="l">در انتظار پذیرش</div></div>
+              <div class="pending-box"><div class="n" id="pending-active">0</div><div class="l">درحال انجام</div></div>
+              <div class="pending-box"><div class="n" id="pending-done">0</div><div class="l">مختومه</div></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>پرونده‌ها بر اساس دسته‌بندی</h3></div>
+            <div class="donut-wrap">
+              <div class="donut-canvas"><canvas id="categoryChart"></canvas></div>
+              <div class="donut-legend" id="category-legend"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>برترین استان‌ها</h3></div>
+            <table>
+              <thead><tr><th>استان</th><th>تعداد پرونده</th><th>درصد</th></tr></thead>
+              <tbody id="top-provinces-body"></tbody>
+            </table>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>دسترسی سریع</h3></div>
+            <div class="quick-grid">
+              <button class="quick-btn quick-blue" data-view="cases"><span class="qi">🔍</span>جستجوی پرونده</button>
+              <button class="quick-btn quick-green" data-view="lawyers"><span class="qi">👨‍⚖️</span>مدیریت وکلا</button>
+              <button class="quick-btn quick-gold" data-view="transactions"><span class="qi">💳</span>گزارش مالی</button>
+              <button class="quick-btn quick-purple" data-view="reports"><span class="qi">📊</span>گزارش‌ها</button>
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-head"><h3>فعالیت‌های اخیر</h3></div>
           <div id="recent-activity"></div>
