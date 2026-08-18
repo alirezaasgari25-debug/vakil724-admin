@@ -10,6 +10,7 @@ let clientsDonutChartInstance = null;
 let clientsRawData = [];
 let clientsCasesMap = {};
 let clientsCaseStatusMap = {};
+const IRAN_PROVINCES = ['آذربایجان شرقی', 'آذربایجان غربی', 'اردبیل', 'اصفهان', 'البرز', 'ایلام', 'بوشهر', 'تهران', 'چهارمحال و بختیاری', 'خراسان جنوبی', 'خراسان رضوی', 'خراسان شمالی', 'خوزستان', 'زنجان', 'سمنان', 'سیستان و بلوچستان', 'فارس', 'قزوین', 'قم', 'کردستان', 'کرمان', 'کرمانشاه', 'کهگیلویه و بویراحمد', 'گلستان', 'گیلان', 'لرستان', 'مازندران', 'مرکزی', 'هرمزگان', 'همدان', 'یزد'];
 
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
@@ -427,8 +428,7 @@ async function loadClients() {
   clientsRawData = clients || [];
 
   const provinceSelect = document.querySelector('#clients-province-filter');
-  const provinces = [...new Set(clientsRawData.map(c => c.residence_province).filter(Boolean))].sort();
-  provinceSelect.innerHTML = '<option value="">همه استان‌ها</option>' + provinces.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  provinceSelect.innerHTML = '<option value="">همه استان‌ها</option>' + IRAN_PROVINCES.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
 
   const citySelect = document.querySelector('#clients-city-filter');
   const cities = [...new Set(clientsRawData.map(c => c.residence_city).filter(Boolean))].sort();
@@ -438,6 +438,7 @@ async function loadClients() {
   applyClientsFilters();
   renderClientsLineChart();
   renderClientsDonutChart();
+  renderClientsRecentList();
 }
 
 function renderClientsStatCards() {
@@ -599,6 +600,43 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'clients-apply-filter' || e.target.closest('#clients-apply-filter')) applyClientsFilters();
   if (e.target.id === 'clients-export-excel' || e.target.closest('#clients-export-excel')) exportClientsToExcel();
 });
+
+function timeAgoLabel(iso) {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  const now = new Date();
+  const h = toPersianDigits(String(date.getHours()).padStart(2, '0'));
+  const m = toPersianDigits(String(date.getMinutes()).padStart(2, '0'));
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+  if (isToday) return `امروز ${h}:${m}`;
+  if (isYesterday) return `دیروز ${h}:${m}`;
+  return formatDate(iso);
+}
+
+function renderClientsRecentList() {
+  const box = document.querySelector('#clients-recent-list');
+  if (!box) return;
+  const recent = [...clientsRawData].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3);
+
+  if (recent.length === 0) {
+    box.innerHTML = '<p class="text-gray-400 text-xs text-center">هنوز موکلی ثبت‌نام نکرده است</p>';
+    return;
+  }
+
+  box.innerHTML = recent.map(c => `
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-xs">${initials(`${c.first_name} ${c.last_name}`)}</span>
+        <span class="font-bold text-sm">${escapeHtml(c.first_name)} ${escapeHtml(c.last_name)}</span>
+      </div>
+      <span class="text-xs text-gray-500">${timeAgoLabel(c.created_at)}</span>
+    </div>`).join('') +
+    `<div class="mt-4 text-center"><a href="#" class="text-brand-dark text-xs font-medium hover:underline" data-view="clients">مشاهده همه</a></div>`;
+
+  box.querySelector('a[data-view]')?.addEventListener('click', (e) => { e.preventDefault(); navigate('clients'); });
+}
 
 function renderClientsLineChart() {
   const ctx = document.getElementById('clientsLineChart');
