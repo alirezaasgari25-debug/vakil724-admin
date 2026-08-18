@@ -9,6 +9,7 @@ let clientsLineChartInstance = null;
 let clientsDonutChartInstance = null;
 let clientsRawData = [];
 let clientsCasesMap = {};
+let clientsCaseStatusMap = {};
 
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
@@ -401,34 +402,37 @@ async function loadLawyers() {
   </tr>`).join('');
 }
 
-// ===== موکلان (نسخه‌ی جدید) =====
+// ===== موکلان (کامل) =====
 async function loadClients() {
   const tbody = document.querySelector('#clients-body');
-  tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6">در حال بارگذاری...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6">در حال بارگذاری...</td></tr>';
   document.querySelector('#clients-stat-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
 
   const { data: clients, error } = await sb.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false });
-  if (error) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>';
-    return;
-  }
+  if (error) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
 
-  const { data: cases } = await sb.from('cases').select('client_phone, price');
+  const { data: cases } = await sb.from('cases').select('client_phone, price, status');
   clientsCasesMap = {};
+  clientsCaseStatusMap = {};
   (cases || []).forEach(c => {
     const phone = c.client_phone;
     if (!phone) return;
     if (!clientsCasesMap[phone]) clientsCasesMap[phone] = { count: 0, total: 0 };
     clientsCasesMap[phone].count += 1;
     clientsCasesMap[phone].total += Number(c.price || 0);
+    if (!clientsCaseStatusMap[phone]) clientsCaseStatusMap[phone] = [];
+    clientsCaseStatusMap[phone].push(c.status);
   });
 
   clientsRawData = clients || [];
 
-  // پر کردن فیلتر استان‌ها
   const provinceSelect = document.querySelector('#clients-province-filter');
   const provinces = [...new Set(clientsRawData.map(c => c.residence_province).filter(Boolean))].sort();
   provinceSelect.innerHTML = '<option value="">همه استان‌ها</option>' + provinces.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+  const citySelect = document.querySelector('#clients-city-filter');
+  const cities = [...new Set(clientsRawData.map(c => c.residence_city).filter(Boolean))].sort();
+  citySelect.innerHTML = '<option value="">همه شهرها</option>' + cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
   renderClientsStatCards();
   applyClientsFilters();
@@ -483,23 +487,44 @@ function renderClientsStatCards() {
   </div>`;
 }
 
-function applyClientsFilters() {
-  const tbody = document.querySelector('#clients-body');
+function getFilteredClients() {
   const search = (document.querySelector('#clients-search').value || '').trim();
   const province = document.querySelector('#clients-province-filter').value;
+  const city = document.querySelector('#clients-city-filter').value;
   const status = document.querySelector('#clients-status-filter').value;
+  const dateFrom = document.querySelector('#clients-date-filter').value;
+  const caseStatus = document.querySelector('#clients-case-status-filter').value;
+  const payment = document.querySelector('#clients-payment-filter').value;
 
-  let filtered = clientsRawData.filter(c => {
+  return clientsRawData.filter(c => {
     const fullName = `${c.first_name || ''} ${c.last_name || ''}`;
     if (search && !fullName.includes(search) && !(c.phone || '').includes(search) && !(c.national_code || '').includes(search)) return false;
     if (province && c.residence_province !== province) return false;
+    if (city && c.residence_city !== city) return false;
     if (status && c.verification_status !== status) return false;
+    if (dateFrom && new Date(c.created_at) < new Date(dateFrom)) return false;
+    if (caseStatus) {
+      const statuses = clientsCaseStatusMap[c.phone] || [];
+      if (!statuses.includes(caseStatus)) return false;
+    }
+    if (payment) {
+      const total = (clientsCasesMap[c.phone] || { total: 0 }).total;
+      if (payment === 'none' && total !== 0) return false;
+      if (payment === 'low' && !(total > 0 && total < 10000000)) return false;
+      if (payment === 'mid' && !(total >= 10000000 && total <= 50000000)) return false;
+      if (payment === 'high' && !(total > 50000000)) return false;
+    }
     return true;
   });
+}
+
+function applyClientsFilters() {
+  const tbody = document.querySelector('#clients-body');
+  const filtered = getFilteredClients();
 
   document.querySelector('#clients-pagination-info').textContent = `نمایش ${toPersianDigits(filtered.length)} از ${toPersianDigits(clientsRawData.length)} نتیجه`;
 
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">موکلی یافت نشد</td></tr>'; return; }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-gray-400">موکلی یافت نشد</td></tr>'; return; }
 
   tbody.innerHTML = filtered.map(c => {
     const stat = clientsCasesMap[c.phone] || { count: 0, total: 0 };
@@ -516,19 +541,63 @@ function applyClientsFilters() {
       <td class="px-4 py-4 text-gray-600 text-sm font-medium text-center">${toPersianDigits(stat.count)}</td>
       <td class="px-4 py-4 text-gray-600 text-sm text-center">${formatMoney(stat.total)}</td>
       <td class="px-4 py-4 text-center"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${CLIENT_STATUS_COLORS[vs]}">${CLIENT_STATUS_LABELS[vs]}</span></td>
+      <td class="px-4 py-4"><div class="flex items-center justify-center gap-2">
+        <button onclick="messageClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-envelope"></i></button>
+        <button onclick="editClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-pen-to-square"></i></button>
+        <button onclick="viewClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-eye"></i></button>
+      </div></td>
     </tr>`;
   }).join('');
 }
 
+function viewClient(phone) {
+  const c = clientsRawData.find(x => x.phone === phone);
+  if (!c) return;
+  const stat = clientsCasesMap[phone] || { count: 0, total: 0 };
+  alert(`نام: ${c.first_name} ${c.last_name}\nکد ملی: ${c.national_code || '—'}\nتلفن: ${c.phone}\nاستان: ${c.residence_province || '—'}\nشهر: ${c.residence_city || '—'}\nتعداد پرونده: ${stat.count}\nمبلغ پرداختی: ${formatMoney(stat.total)} تومان\nتاریخ ثبت‌نام: ${formatDate(c.created_at)}`);
+}
+function editClient(phone) { toast('این قابلیت به‌زودی اضافه می‌شود'); }
+function messageClient(phone) { toast('این قابلیت به‌زودی اضافه می‌شود'); }
+
+function exportClientsToExcel() {
+  const filtered = getFilteredClients();
+  const rows = filtered.map(c => {
+    const stat = clientsCasesMap[c.phone] || { count: 0, total: 0 };
+    return {
+      'نام': `${c.first_name || ''} ${c.last_name || ''}`,
+      'کد ملی': c.national_code || '',
+      'تلفن': c.phone || '',
+      'استان': c.residence_province || '',
+      'شهر': c.residence_city || '',
+      'تعداد پرونده': stat.count,
+      'مبلغ پرداختی (تومان)': stat.total,
+      'وضعیت': CLIENT_STATUS_LABELS[c.verification_status || 'not_submitted'],
+      'تاریخ ثبت‌نام': formatDate(c.created_at),
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'موکلان');
+  XLSX.writeFile(wb, `موکلان-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
 document.addEventListener('input', (e) => { if (e.target.id === 'clients-search') applyClientsFilters(); });
-document.addEventListener('change', (e) => { if (e.target.id === 'clients-province-filter' || e.target.id === 'clients-status-filter') applyClientsFilters(); });
+document.addEventListener('change', (e) => {
+  if (['clients-province-filter', 'clients-city-filter', 'clients-status-filter', 'clients-date-filter', 'clients-case-status-filter', 'clients-payment-filter'].includes(e.target.id)) applyClientsFilters();
+});
 document.addEventListener('click', (e) => {
   if (e.target.id === 'clients-clear-filters' || e.target.closest('#clients-clear-filters')) {
     document.querySelector('#clients-search').value = '';
     document.querySelector('#clients-province-filter').value = '';
+    document.querySelector('#clients-city-filter').value = '';
     document.querySelector('#clients-status-filter').value = '';
+    document.querySelector('#clients-date-filter').value = '';
+    document.querySelector('#clients-case-status-filter').value = '';
+    document.querySelector('#clients-payment-filter').value = '';
     applyClientsFilters();
   }
+  if (e.target.id === 'clients-apply-filter' || e.target.closest('#clients-apply-filter')) applyClientsFilters();
+  if (e.target.id === 'clients-export-excel' || e.target.closest('#clients-export-excel')) exportClientsToExcel();
 });
 
 function renderClientsLineChart() {
