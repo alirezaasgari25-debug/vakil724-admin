@@ -5,6 +5,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let PROFILE = null;
 let performanceChartInstance = null;
 let categoryChartInstance = null;
+let clientsLineChartInstance = null;
+let clientsDonutChartInstance = null;
+let clientsRawData = [];
+let clientsCasesMap = {};
 
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
@@ -26,17 +30,15 @@ const STATUS_LABELS = {
   pending_confirmation: 'در انتظار تایید', disputed: 'در حال بررسی', done: 'مختومه'
 };
 const VERIFY_LABELS = { not_submitted: 'هنوز ارسال نشده', pending: 'در انتظار بررسی', approved: 'تایید شده', rejected: 'رد شده' };
+const CLIENT_STATUS_LABELS = { approved: 'فعال', pending: 'در انتظار', rejected: 'تعلیق‌شده', not_submitted: 'غیرفعال' };
+const CLIENT_STATUS_COLORS = { approved: 'bg-green-50 text-green-700', pending: 'bg-gray-100 text-gray-600', rejected: 'bg-red-50 text-red-700', not_submitted: 'bg-yellow-50 text-yellow-700' };
 const CATEGORY_COLORS = { 'کیفری': '#3B82F6', 'حقوقی': '#10B981', 'خانواده': '#F59E0B', 'تجاری': '#8B5CF6', 'کار': '#EC4899' };
 const CATEGORY_FALLBACK = '#94A3B8';
 
 function getShamsiDateString() {
   try {
-    return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    }).format(new Date());
-  } catch (e) {
-    return '';
-  }
+    return new Intl.DateTimeFormat('fa-IR-u-ca-persian', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  } catch (e) { return ''; }
 }
 
 function updateClock() {
@@ -47,7 +49,7 @@ function updateClock() {
   const el = document.querySelector('#digital-clock');
   if (el) {
     const iconHtml = '<svg class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
-    el.innerHTML = `${iconHtml}<span>${getShamsiDateString()}</span><span class="w-px h-4 bg-gray-200 mx-1"></span><span>${h}:${m}:${s}</span>`;
+    el.innerHTML = `<span class="flex items-center gap-2">${iconHtml}<span>${getShamsiDateString()}</span><span class="w-px h-4 bg-gray-200 mx-1"></span><span>${h}:${m}:${s}</span></span>`;
   }
 }
 setInterval(updateClock, 1000);
@@ -141,7 +143,7 @@ async function refreshNotifBadge() {
   else { supportBadge.classList.add('hidden-view'); }
 }
 
-// ===== ۸ کارت آماری دقیقاً مثل طراحی اصلی =====
+// ===== ۸ کارت آماری داشبورد اصلی =====
 function trendBadge(percent, isUp) {
   const color = isUp ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50';
   const arrow = isUp
@@ -264,14 +266,8 @@ async function loadDashboard() {
   const incomeMonth = allCases.filter(c => new Date(c.created_at) >= monthStart).reduce((s, c) => s + Number(c.price || 0), 0);
 
   document.querySelector('#stat-cards').innerHTML = dashboardStatCards({
-    casesToday,
-    activeCount: activeCases.length,
-    unansweredCount: unansweredCases.length,
-    lawyersOnline: lawyersRes.count || 0,
-    failedPayments: 0,
-    incomeToday,
-    incomeMonth,
-    clientsOnline: clientsRes.count || 0,
+    casesToday, activeCount: activeCases.length, unansweredCount: unansweredCases.length,
+    lawyersOnline: lawyersRes.count || 0, failedPayments: 0, incomeToday, incomeMonth, clientsOnline: clientsRes.count || 0,
   });
 
   document.querySelector('#pending-total') && (document.querySelector('#pending-total').textContent = toPersianDigits(unansweredCases.length));
@@ -298,14 +294,11 @@ function renderPerformanceChart(allCases) {
   Chart.defaults.font.family = "'Vazirmatn', sans-serif";
   performanceChartInstance = new Chart(ctx.getContext('2d'), {
     type: 'bar',
-    data: {
-      labels: days,
-      datasets: [
-        { label: 'درآمد (میلیون تومان)', data: incomeDataset, backgroundColor: '#1A1E2F', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
-        { label: 'پذیرش پرونده', data: acceptDataset, backgroundColor: '#D4AF37', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
-        { label: 'ثبت پرونده', data: regDataset, backgroundColor: '#85d6b9', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 }
-      ]
-    },
+    data: { labels: days, datasets: [
+      { label: 'درآمد (میلیون تومان)', data: incomeDataset, backgroundColor: '#1A1E2F', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
+      { label: 'پذیرش پرونده', data: acceptDataset, backgroundColor: '#D4AF37', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
+      { label: 'ثبت پرونده', data: regDataset, backgroundColor: '#85d6b9', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 }
+    ]},
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } },
@@ -350,10 +343,7 @@ function renderTopProvinces(allCases) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4);
 
-  if (sorted.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">داده‌ای وجود ندارد</td></tr>';
-    return;
-  }
+  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">داده‌ای وجود ندارد</td></tr>'; return; }
   tbody.innerHTML = sorted.map(([p, count], i) => `
     <tr class="bg-white border-b${i === sorted.length - 1 ? ' border-b-0' : ''}">
       <td class="px-4 py-3 font-medium text-gray-900">${escapeHtml(p)}</td>
@@ -411,21 +401,182 @@ async function loadLawyers() {
   </tr>`).join('');
 }
 
+// ===== موکلان (نسخه‌ی جدید) =====
 async function loadClients() {
   const tbody = document.querySelector('#clients-body');
-  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6">در حال بارگذاری...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6">در حال بارگذاری...</td></tr>';
+  document.querySelector('#clients-stat-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
 
-  const { data, error } = await sb.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false });
-  if (error) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
-  if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-400">هنوز موکلی ثبت‌نام نکرده است</td></tr>'; return; }
+  const { data: clients, error } = await sb.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false });
+  if (error) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>';
+    return;
+  }
 
-  tbody.innerHTML = data.map(c => `<tr class="border-b border-gray-50 hover:bg-gray-50">
-    <td class="px-4 py-3">${escapeHtml(c.first_name)} ${escapeHtml(c.last_name)}</td>
-    <td class="px-4 py-3" dir="ltr">${toPersianDigits(escapeHtml(c.national_code || '—'))}</td>
-    <td class="px-4 py-3" dir="ltr">${toPersianDigits(escapeHtml(c.phone))}</td>
-    <td class="px-4 py-3">${escapeHtml(VERIFY_LABELS[c.verification_status] || c.verification_status || '—')}</td>
-    <td class="px-4 py-3">${formatDate(c.created_at)}</td>
-  </tr>`).join('');
+  const { data: cases } = await sb.from('cases').select('client_phone, price');
+  clientsCasesMap = {};
+  (cases || []).forEach(c => {
+    const phone = c.client_phone;
+    if (!phone) return;
+    if (!clientsCasesMap[phone]) clientsCasesMap[phone] = { count: 0, total: 0 };
+    clientsCasesMap[phone].count += 1;
+    clientsCasesMap[phone].total += Number(c.price || 0);
+  });
+
+  clientsRawData = clients || [];
+
+  // پر کردن فیلتر استان‌ها
+  const provinceSelect = document.querySelector('#clients-province-filter');
+  const provinces = [...new Set(clientsRawData.map(c => c.residence_province).filter(Boolean))].sort();
+  provinceSelect.innerHTML = '<option value="">همه استان‌ها</option>' + provinces.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+  renderClientsStatCards();
+  applyClientsFilters();
+  renderClientsLineChart();
+  renderClientsDonutChart();
+}
+
+function renderClientsStatCards() {
+  const total = clientsRawData.length;
+  const active = clientsRawData.filter(c => c.verification_status === 'approved').length;
+  const inactive = clientsRawData.filter(c => c.verification_status === 'not_submitted').length;
+  const monthStart = new Date(); monthStart.setDate(1);
+  const newThisMonth = clientsRawData.filter(c => new Date(c.created_at) >= monthStart).length;
+  const totalPaid = Object.values(clientsCasesMap).reduce((s, v) => s + v.total, 0);
+
+  document.querySelector('#clients-stat-cards').innerHTML = `
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
+    <div class="flex justify-between items-start flex-row-reverse">
+      <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500"><i class="fa-solid fa-coins text-lg"></i></div>
+      <div class="text-right flex-1 ml-2"><p class="text-xs text-gray-500 mb-1">مبلغ پرداختی کل</p><h3 class="text-xl font-bold">${formatMoney(totalPaid)}</h3><p class="text-[10px] text-gray-400">تومان</p></div>
+    </div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
+    <div class="flex justify-between items-start flex-row-reverse">
+      <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500"><i class="fa-regular fa-folder-open text-lg"></i></div>
+      <div class="text-right flex-1 ml-2"><p class="text-xs text-gray-500 mb-1">کل پرونده‌های ثبت‌شده</p><h3 class="text-xl font-bold">${toPersianDigits(Object.values(clientsCasesMap).reduce((s, v) => s + v.count, 0))}</h3></div>
+    </div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
+    <div class="flex justify-between items-start flex-row-reverse">
+      <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500"><i class="fa-solid fa-user-xmark text-lg"></i></div>
+      <div class="text-right flex-1 ml-2"><p class="text-xs text-gray-500 mb-1">موکلان غیرفعال</p><h3 class="text-xl font-bold">${toPersianDigits(inactive)}</h3></div>
+    </div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
+    <div class="flex justify-between items-start flex-row-reverse">
+      <div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-500"><i class="fa-regular fa-clock text-lg"></i></div>
+      <div class="text-right flex-1 ml-2"><p class="text-xs text-gray-500 mb-1">موکلان جدید این ماه</p><h3 class="text-xl font-bold">${toPersianDigits(newThisMonth)}</h3></div>
+    </div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
+    <div class="flex justify-between items-start flex-row-reverse">
+      <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500"><i class="fa-solid fa-user-check text-lg"></i></div>
+      <div class="text-right flex-1 ml-2"><p class="text-xs text-gray-500 mb-1">موکلان فعال</p><h3 class="text-xl font-bold">${toPersianDigits(active)}</h3></div>
+    </div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
+    <div class="flex justify-between items-start flex-row-reverse">
+      <div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500"><i class="fa-solid fa-users text-lg"></i></div>
+      <div class="text-right flex-1 ml-2"><p class="text-xs text-gray-500 mb-1">کل موکلان</p><h3 class="text-xl font-bold">${toPersianDigits(total)}</h3></div>
+    </div>
+  </div>`;
+}
+
+function applyClientsFilters() {
+  const tbody = document.querySelector('#clients-body');
+  const search = (document.querySelector('#clients-search').value || '').trim();
+  const province = document.querySelector('#clients-province-filter').value;
+  const status = document.querySelector('#clients-status-filter').value;
+
+  let filtered = clientsRawData.filter(c => {
+    const fullName = `${c.first_name || ''} ${c.last_name || ''}`;
+    if (search && !fullName.includes(search) && !(c.phone || '').includes(search) && !(c.national_code || '').includes(search)) return false;
+    if (province && c.residence_province !== province) return false;
+    if (status && c.verification_status !== status) return false;
+    return true;
+  });
+
+  document.querySelector('#clients-pagination-info').textContent = `نمایش ${toPersianDigits(filtered.length)} از ${toPersianDigits(clientsRawData.length)} نتیجه`;
+
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">موکلی یافت نشد</td></tr>'; return; }
+
+  tbody.innerHTML = filtered.map(c => {
+    const stat = clientsCasesMap[c.phone] || { count: 0, total: 0 };
+    const vs = c.verification_status || 'not_submitted';
+    return `<tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+      <td class="px-4 py-4"><div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500">${initials(`${c.first_name} ${c.last_name}`)}</span>
+        <span class="font-bold text-gray-900 text-sm whitespace-nowrap">${escapeHtml(c.first_name)} ${escapeHtml(c.last_name)}</span>
+      </div></td>
+      <td class="px-4 py-4 text-gray-600 text-sm text-center" dir="ltr">${toPersianDigits(escapeHtml(c.national_code || '—'))}</td>
+      <td class="px-4 py-4 text-gray-600 text-sm text-center" dir="ltr">${toPersianDigits(escapeHtml(c.phone))}</td>
+      <td class="px-4 py-4 text-gray-600 text-sm text-center">${escapeHtml(c.residence_province || '—')}</td>
+      <td class="px-4 py-4 text-gray-600 text-sm text-center">${escapeHtml(c.residence_city || '—')}</td>
+      <td class="px-4 py-4 text-gray-600 text-sm font-medium text-center">${toPersianDigits(stat.count)}</td>
+      <td class="px-4 py-4 text-gray-600 text-sm text-center">${formatMoney(stat.total)}</td>
+      <td class="px-4 py-4 text-center"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${CLIENT_STATUS_COLORS[vs]}">${CLIENT_STATUS_LABELS[vs]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+document.addEventListener('input', (e) => { if (e.target.id === 'clients-search') applyClientsFilters(); });
+document.addEventListener('change', (e) => { if (e.target.id === 'clients-province-filter' || e.target.id === 'clients-status-filter') applyClientsFilters(); });
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'clients-clear-filters' || e.target.closest('#clients-clear-filters')) {
+    document.querySelector('#clients-search').value = '';
+    document.querySelector('#clients-province-filter').value = '';
+    document.querySelector('#clients-status-filter').value = '';
+    applyClientsFilters();
+  }
+});
+
+function renderClientsLineChart() {
+  const ctx = document.getElementById('clientsLineChart');
+  if (!ctx) return;
+  if (clientsLineChartInstance) clientsLineChartInstance.destroy();
+
+  const days = [], counts = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    days.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { day: 'numeric', month: 'short' })));
+    counts.push(clientsRawData.filter(c => (c.created_at || '').slice(0, 10) === key).length);
+  }
+
+  Chart.defaults.font.family = "'Vazirmatn', sans-serif";
+  clientsLineChartInstance = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: { labels: days, datasets: [{ label: 'ثبت‌نام', data: counts, borderColor: '#10B981', borderWidth: 2, tension: 0.3, pointRadius: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } }, grid: { color: '#F3F4F6' } } }
+    }
+  });
+}
+
+function renderClientsDonutChart() {
+  const ctx = document.getElementById('clientsDonutChart');
+  if (!ctx) return;
+  if (clientsDonutChartInstance) clientsDonutChartInstance.destroy();
+
+  const counts = { approved: 0, pending: 0, rejected: 0, not_submitted: 0 };
+  clientsRawData.forEach(c => { const vs = c.verification_status || 'not_submitted'; if (counts[vs] !== undefined) counts[vs]++; });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+  const order = ['approved', 'pending', 'rejected', 'not_submitted'];
+  const colors = ['#10B981', '#D1D5DB', '#EF4444', '#FACC15'];
+
+  clientsDonutChartInstance = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: order.map(k => CLIENT_STATUS_LABELS[k]), datasets: [{ data: order.map(k => counts[k]), backgroundColor: colors, borderWidth: 0, cutout: '75%' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+  });
+
+  document.querySelector('#clients-donut-legend').innerHTML = order.map((k, i) => {
+    const pct = Math.round((counts[k] / total) * 100);
+    return `<div class="flex items-center justify-between"><div class="flex items-center gap-2 text-gray-600"><span class="w-2.5 h-2.5 rounded-full" style="background:${colors[i]}"></span> ${CLIENT_STATUS_LABELS[k]}</div><span class="font-medium text-gray-700">${toPersianDigits(pct)}٪</span></div>`;
+  }).join('');
 }
 
 async function loadTransactions() {
