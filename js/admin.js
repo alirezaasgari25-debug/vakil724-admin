@@ -29,6 +29,16 @@ const VERIFY_LABELS = { not_submitted: 'هنوز ارسال نشده', pending: 
 const CATEGORY_COLORS = { 'کیفری': '#3B82F6', 'حقوقی': '#10B981', 'خانواده': '#F59E0B', 'تجاری': '#8B5CF6', 'کار': '#EC4899' };
 const CATEGORY_FALLBACK = '#94A3B8';
 
+function getShamsiDateString() {
+  try {
+    return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    }).format(new Date());
+  } catch (e) {
+    return '';
+  }
+}
+
 function updateClock() {
   const now = new Date();
   const h = toPersianDigits(String(now.getHours()).padStart(2, '0'));
@@ -37,7 +47,7 @@ function updateClock() {
   const el = document.querySelector('#digital-clock');
   if (el) {
     const iconHtml = '<svg class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>';
-    el.innerHTML = iconHtml + `${h}:${m}:${s}`;
+    el.innerHTML = `${iconHtml}<span>${getShamsiDateString()}</span><span class="w-px h-4 bg-gray-200 mx-1"></span><span>${h}:${m}:${s}</span>`;
   }
 }
 setInterval(updateClock, 1000);
