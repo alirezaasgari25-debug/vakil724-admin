@@ -680,17 +680,15 @@ async function markCommissionPaid(caseId) {
 async function loadReports() {
   document.querySelector('#reports-overview-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
   const { data: allCases, error } = await sb.from('cases').select('*');
-  const { data: lawyersCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'lawyer').eq('verification_status', 'approved');
-  const { data: clientsCountData, count: clientsCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client');
   if (error) { document.querySelector('#reports-overview-cards').innerHTML = '<p class="p-5 text-red-600 text-sm">خطا: ' + escapeHtml(error.message) + '</p>'; return; }
+  const { count: clientsCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client');
+  const { count: lawyersApprovedCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'lawyer').eq('verification_status', 'approved');
 
   const total = (allCases || []).length;
   const doneCases = (allCases || []).filter(c => c.status === 'done');
   const activeCases = (allCases || []).filter(c => c.status === 'accepted');
   const totalIncome = (allCases || []).reduce((s, c) => s + Number(c.price || 0), 0);
   const successRate = total > 0 ? Math.round((doneCases.length / total) * 100) : 0;
-
-  const { count: lawyersApprovedCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'lawyer').eq('verification_status', 'approved');
 
   const card = (label, value, unit, icon) => `<div class="bg-white p-8 rounded-2xl shadow-soft border border-gray-100 hover:shadow-md transition-all"><div class="flex justify-between items-start mb-4"><span class="text-xs text-gray-500">${label}</span><span class="p-2 rounded-xl bg-brand-dark/10 text-brand-dark"><i class="fa-solid ${icon}"></i></span></div><div class="text-3xl font-extrabold text-gray-900">${value} ${unit ? `<span class="text-sm text-gray-500 font-normal">${unit}</span>` : ''}</div></div>`;
   document.querySelector('#reports-overview-cards').innerHTML =
@@ -727,20 +725,15 @@ document.addEventListener('click', (e) => {
 
 // ===================== NOTIFICATIONS =====================
 async function loadNotifications() {
-  document.querySelector('#notif-kpi-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
   const { data, error, count } = await sb.from('contact_messages').select('*', { count: 'exact' }).order('created_at', { ascending: false });
-  if (error) { document.querySelector('#notif-kpi-cards').innerHTML = '<p class="p-5 text-red-600 text-sm">خطا: ' + escapeHtml(error.message) + '</p>'; return; }
+  if (error) { document.querySelector('#support-body').innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
   const all = data || [];
   const today = new Date().toISOString().slice(0, 10);
   const todayCount = all.filter(m => (m.created_at || '').slice(0, 10) === today).length;
   const unreadCount = all.filter(m => !m.is_read).length;
-  const card = (label, value, icon, bg, color) => `<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col justify-between"><div class="flex justify-between items-start mb-3"><div class="w-10 h-10 rounded-full ${bg} flex items-center justify-center ${color}"><i class="fa-solid ${icon}"></i></div></div><div><h3 class="text-2xl font-bold text-gray-900">${value}</h3><p class="text-xs text-gray-500 mt-1">${label}</p></div></div>`;
-  document.querySelector('#notif-kpi-cards').innerHTML =
-    card('مجموع پیام‌ها', toPersianDigits(count || 0), 'fa-envelope', 'bg-brand-dark/10', 'text-brand-dark') +
-    card('دریافتی امروز', toPersianDigits(todayCount), 'fa-calendar-day', 'bg-brand-dark/10', 'text-brand-dark') +
-    card('خوانده نشده', toPersianDigits(unreadCount), 'fa-bell', 'bg-yellow-100', 'text-yellow-700') +
-    card('نیاز به بررسی', toPersianDigits(unreadCount), 'fa-triangle-exclamation', 'bg-red-100', 'text-red-600') +
-    card('کل ارسال‌شده', '۰', 'fa-paper-plane', 'bg-brand-dark/10', 'text-brand-dark');
+  document.querySelector('#notif-total-count').textContent = toPersianDigits(count || 0);
+  document.querySelector('#notif-today-count').textContent = toPersianDigits(todayCount);
+  document.querySelector('#notif-unread-count').textContent = toPersianDigits(unreadCount);
   loadSupport(all);
 }
 async function loadSupport(preloaded) {

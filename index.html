@@ -98,7 +98,6 @@
 <div class="flex-1 overflow-y-auto p-6 md:p-8">
 <div class="max-w-[1600px] mx-auto space-y-6">
 
-<!-- DASHBOARD -->
 <div id="view-dashboard" class="view">
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="stat-cards"></div>
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
@@ -137,7 +136,6 @@
 </div>
 </div>
 
-<!-- CASES -->
 <div id="view-cases" class="view hidden-view">
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6" id="cases-stat-cards"></div>
 <div class="bg-white rounded-3xl p-5 shadow-soft border border-gray-100 flex flex-col gap-6 mb-6">
@@ -160,7 +158,6 @@
 <div class="bg-white rounded-3xl p-6 shadow-soft border border-gray-100 flex flex-col" id="case-detail-panel"></div>
 </div>
 
-<!-- LAWYERS -->
 <div id="view-lawyers" class="view hidden-view">
 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-6" id="lawyers-stat-cards"></div>
 <div class="flex gap-6 items-start">
@@ -194,7 +191,6 @@
 </div>
 </div>
 
-<!-- CLIENTS -->
 <div id="view-clients" class="view hidden-view">
 <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6" id="clients-stat-cards"></div>
 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
@@ -228,7 +224,6 @@
 </div>
 </div>
 
-<!-- TRANSACTIONS (مالی) -->
 <div id="view-transactions" class="view hidden-view">
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-2" id="finance-summary-cards"></div>
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 my-6">
@@ -273,24 +268,15 @@
 </div>
 </div>
 
-<!-- REPORTS -->
 <div id="view-reports" class="view hidden-view">
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-wrap items-center justify-between gap-4 mb-6">
 <h2 class="text-lg font-bold text-gray-800">گزارش‌های اجرایی</h2>
-<div class="flex gap-3">
 <button id="reports-export-excel" class="flex items-center gap-2 px-4 py-2 bg-brand-dark text-white rounded-xl text-sm"><i class="fa-solid fa-table"></i>خروجی Excel</button>
-</div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6" id="reports-overview-cards"></div>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
-<h4 class="text-lg font-bold text-gray-800 mb-6">روند ثبت پرونده (۶ ماه گذشته)</h4>
-<div class="h-64 relative"><canvas id="reportsCasesChart"></canvas></div>
-</div>
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
-<h4 class="text-lg font-bold text-gray-800 mb-6">روند درآمد (۶ ماه گذشته) - میلیون تومان</h4>
-<div class="h-64 relative"><canvas id="reportsIncomeChart"></canvas></div>
-</div>
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100"><h4 class="text-lg font-bold text-gray-800 mb-6">روند ثبت پرونده (۶ ماه گذشته)</h4><div class="h-64 relative"><canvas id="reportsCasesChart"></canvas></div></div>
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100"><h4 class="text-lg font-bold text-gray-800 mb-6">روند درآمد (۶ ماه گذشته) - میلیون تومان</h4><div class="h-64 relative"><canvas id="reportsIncomeChart"></canvas></div></div>
 </div>
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
 <h3 class="text-lg font-bold text-gray-800 mb-4">پرونده‌ها به تفکیک وضعیت</h3>
@@ -298,31 +284,100 @@
 </div>
 </div>
 
-<!-- NOTIFICATIONS -->
 <div id="view-notifications" class="view hidden-view">
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6" id="notif-kpi-cards"></div>
+<div class="mb-6">
+<h1 class="text-2xl font-bold text-gray-900 mb-2">مرکز اعلان‌ها</h1>
+<p class="text-sm text-gray-500">مدیریت جامع پیام‌ها، هشدارها و ارتباطات سیستمی وکیل ۷۲۴.</p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
+<div class="bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4"><div class="w-12 h-12 rounded-full bg-brand-dark/10 flex items-center justify-center text-brand-dark"><i class="fa-solid fa-envelope-open text-lg"></i></div><span class="text-xs text-gray-400">کل</span></div>
+<div><h3 class="text-3xl font-bold text-gray-900" id="notif-total-count">۰</h3><p class="text-xs text-gray-500 mt-1">مجموع اعلان‌ها</p></div>
+</div>
+<div class="bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4"><div class="w-12 h-12 rounded-full bg-brand-dark/10 flex items-center justify-center text-brand-dark"><i class="fa-solid fa-calendar-day text-lg"></i></div><span class="text-xs text-gray-400">امروز</span></div>
+<div><h3 class="text-3xl font-bold text-gray-900" id="notif-today-count">۰</h3><p class="text-xs text-gray-500 mt-1">دریافتی امروز</p></div>
+</div>
+<div class="bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4"><div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600"><i class="fa-solid fa-bell text-lg"></i></div><span class="text-xs text-gray-400">خوانده نشده</span></div>
+<div><h3 class="text-3xl font-bold text-gray-900" id="notif-unread-count">۰</h3><p class="text-xs text-gray-500 mt-1">نیاز به بررسی</p></div>
+</div>
+<div class="bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4"><div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i class="fa-solid fa-triangle-exclamation text-lg"></i></div><span class="text-xs text-gray-400">مهم</span></div>
+<div><h3 class="text-3xl font-bold text-gray-900">۷</h3><p class="text-xs text-gray-500 mt-1">وضعیت بحرانی</p></div>
+</div>
+<div class="bg-white rounded-3xl p-8 shadow-soft border border-gray-100 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4"><div class="w-12 h-12 rounded-full bg-brand-dark/10 flex items-center justify-center text-brand-dark"><i class="fa-solid fa-paper-plane text-lg"></i></div><span class="text-xs text-gray-400">ارسال شده</span></div>
+<div><h3 class="text-3xl font-bold text-gray-900">۳,۱۲۰</h3><p class="text-xs text-gray-500 mt-1">توسط مدیریت</p></div>
+</div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 <div class="lg:col-span-8 flex flex-col gap-4">
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
-<div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold text-gray-800">پیام‌های تماس با ما</h2><button id="notif-mark-all-read" class="text-brand-dark text-sm hover:underline">علامت‌گذاری همه به عنوان خوانده شده</button></div>
+<div class="flex justify-between items-center mb-6"><h2 class="text-lg font-bold text-gray-800">اعلان‌های اخیر</h2><button id="notif-mark-all-read" class="text-brand-dark text-sm flex items-center gap-2 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-colors"><i class="fa-solid fa-check-double"></i>علامت‌گذاری همه به عنوان خوانده شده</button></div>
+<div class="flex overflow-x-auto pb-2 gap-2 border-b border-gray-100 no-scrollbar">
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-brand-dark text-brand-dark bg-brand-dark/5 whitespace-nowrap">همه موارد</button>
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">خوانده نشده</button>
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>بحرانی</button>
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">مهم</button>
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">پرونده‌ها</button>
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">مالی</button>
+<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">سیستم</button>
+</div>
+</div>
+
+<div class="flex flex-col gap-4">
+<div class="bg-white rounded-xl p-5 shadow-soft border-r-4 border-red-500 hover:bg-gray-50/50 transition-colors cursor-pointer group flex gap-4">
+<div class="w-10 h-10 rounded-full bg-red-100 flex-shrink-0 flex items-center justify-center text-red-600 mt-1"><i class="fa-solid fa-triangle-exclamation"></i></div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-gray-800 group-hover:text-brand-dark transition-colors">افت سرور دیتابیس اصلی</h4><span class="text-xs text-gray-500 whitespace-nowrap bg-gray-100 px-2 py-1 rounded-md">۱۰ دقیقه پیش</span></div>
+<p class="text-sm text-gray-500 mb-3 line-clamp-2">بار پردازشی دیتابیس اصلی به ۹۵٪ رسیده است. تیم فنی در حال بررسی وضعیت است. تخصیص منابع اضطراری فعال شد.</p>
+<div class="flex items-center gap-3"><span class="inline-flex items-center gap-1 text-xs text-red-600 bg-red-100 px-2.5 py-1 rounded-full">بحرانی</span><span class="text-xs text-gray-400">سیستم</span></div>
+</div>
+</div>
+<div class="bg-white rounded-xl p-5 shadow-soft border-r-4 border-yellow-500 hover:bg-gray-50/50 transition-colors cursor-pointer group flex gap-4">
+<div class="w-10 h-10 rounded-full bg-yellow-100 flex-shrink-0 flex items-center justify-center text-yellow-600 mt-1"><i class="fa-solid fa-wallet"></i></div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-gray-800 group-hover:text-brand-dark transition-colors">تراکنش مشکوک ثبت شد</h4><span class="text-xs text-gray-500 whitespace-nowrap bg-gray-100 px-2 py-1 rounded-md">۱ ساعت پیش</span></div>
+<p class="text-sm text-gray-500 mb-3 line-clamp-2">یک تراکنش با مبلغ غیرمتعارف (۵۰۰ میلیون تومان) توسط کاربر 'علی رضایی' ثبت شده و در انتظار تایید مدیریت مالی است.</p>
+<div class="flex items-center gap-3"><span class="inline-flex items-center gap-1 text-xs text-yellow-700 bg-yellow-100 px-2.5 py-1 rounded-full">مهم</span><span class="text-xs text-gray-400">مالی</span></div>
+</div>
+</div>
+</div>
+
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 mt-4">
+<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">پیام‌های تماس با ما (واقعی)</h3></div>
 <div class="overflow-x-auto"><table class="w-full text-sm text-right text-gray-600"><thead class="text-xs text-gray-500 bg-gray-50"><tr><th class="px-4 py-3 rounded-r-lg">نام</th><th class="px-4 py-3">تلفن</th><th class="px-4 py-3">پیام</th><th class="px-4 py-3">تاریخ</th><th class="px-4 py-3 rounded-l-lg">عملیات</th></tr></thead><tbody id="support-body"></tbody></table></div>
 </div>
 </div>
+
 <div class="lg:col-span-4 flex flex-col gap-6">
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col gap-6">
-<h3 class="text-lg font-bold text-gray-800">ارسال اعلان جدید</h3>
-<div class="flex flex-col gap-4">
-<div><label class="block text-xs font-bold text-gray-500 mb-2">مخاطبین</label><select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm"><option>همه کاربران</option><option>فقط وکلا</option><option>فقط موکلین</option></select></div>
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
+<h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-heart-pulse text-gray-400"></i>هشدارهای سیستم</h3>
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center py-2 border-b border-gray-100"><span class="text-sm text-gray-600">وضعیت سرور</span><span class="inline-flex items-center gap-1.5 text-xs text-brand-dark bg-brand-dark/10 px-2 py-1 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-brand-dark"></span>عادی</span></div>
+<div class="flex justify-between items-center py-2 border-b border-gray-100"><span class="text-sm text-gray-600">درگاه پرداخت</span><span class="inline-flex items-center gap-1.5 text-xs text-brand-dark bg-brand-dark/10 px-2 py-1 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-brand-dark"></span>متصل</span></div>
+<div class="flex justify-between items-center py-2"><span class="text-sm text-gray-600">ظرفیت وکلای تهران</span><span class="inline-flex items-center gap-1.5 text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-md"><span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>هشدار (۸۵٪)</span></div>
+</div>
+</div>
+
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex-grow">
+<h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><i class="fa-solid fa-bullhorn text-brand-dark"></i>ارسال اعلان جدید</h3>
+<div class="flex flex-col gap-5">
+<div><label class="block text-xs font-bold text-gray-500 mb-2">مخاطبین</label><select class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm"><option>همه کاربران</option><option>فقط وکلا</option><option>فقط موکلین</option><option>کاربران یک استان خاص</option></select></div>
 <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان اعلان</label><input class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm" placeholder="مثال: بروزرسانی قوانین سامانه" type="text"></div>
-<div><label class="block text-xs font-bold text-gray-500 mb-2">متن پیام</label><textarea class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm resize-none" placeholder="متن پیام..." rows="4"></textarea></div>
-<button id="notif-send-btn" class="w-full bg-brand-dark text-white py-3 rounded-xl text-sm font-bold">ارسال اعلان</button>
+<div><label class="block text-xs font-bold text-gray-500 mb-2">متن پیام</label><textarea class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm resize-none" placeholder="متن پیام خود را اینجا بنویسید..." rows="4"></textarea></div>
+<div class="pt-4 mt-2 border-t border-gray-100 flex gap-3">
+<button id="notif-send-btn" class="flex-1 bg-brand-dark text-white py-3 rounded-xl text-sm font-bold">ارسال اعلان</button>
+<button class="px-4 bg-white text-brand-dark border border-gray-200 rounded-xl text-sm">پیش‌نویس</button>
+</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 
-<!-- SETTINGS -->
 <div id="view-settings" class="view hidden-view">
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 mb-6">
 <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-tags text-brand-dark"></i>تعرفه ثبت پرونده</h3>
@@ -370,7 +425,6 @@
 </div>
 </div>
 
-<!-- USERS -->
 <div id="view-users" class="view hidden-view">
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
 <h3 class="text-lg font-bold text-gray-800 mb-4">کاربران پنل مدیریت</h3>
