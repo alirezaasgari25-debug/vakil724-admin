@@ -33,6 +33,11 @@
     ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     .hidden-view { display: none !important; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .chart-bar { width: 6px; border-radius: 4px; display: inline-block; margin: 0 2px; vertical-align: bottom; }
+    .stepper-item:not(:last-child)::after { content: ''; position: absolute; top: 24px; right: 11px; width: 2px; height: calc(100% - 24px); background-color: #e5e7eb; z-index: 0; }
+    .stepper-item.completed:not(:last-child)::after { background-color: #1A1E2F; }
 </style>
 </head>
 <body class="flex h-screen overflow-hidden text-sm font-sans">
@@ -220,32 +225,175 @@
 
 <!-- ===================== VIEW: CASES ===================== -->
 <div id="view-cases" class="view hidden-view">
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
-<div class="flex justify-between items-center mb-4">
-<h3 class="text-lg font-bold text-gray-800">پرونده‌ها</h3>
-<input type="search" id="cases-search" placeholder="جستجوی پرونده…" class="bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6" id="cases-stat-cards"></div>
+
+<div class="bg-white rounded-3xl p-5 shadow-soft border border-gray-100 flex flex-col gap-6 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+<div class="md:col-span-3 lg:col-span-5">
+<div class="relative">
+<input id="cases-search" class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:ring-brand-dark focus:border-brand-dark" placeholder="جستجو در پرونده‌ها..." type="text">
+<i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
 </div>
-<div class="overflow-x-auto">
-<table class="w-full text-sm text-right text-gray-600">
-<thead class="text-xs text-gray-500 bg-gray-50"><tr><th class="px-4 py-3 rounded-r-lg">موضوع</th><th class="px-4 py-3">موکل</th><th class="px-4 py-3">وکیل</th><th class="px-4 py-3">وضعیت</th><th class="px-4 py-3">مبلغ اولیه</th><th class="px-4 py-3 rounded-l-lg">تاریخ ثبت</th></tr></thead>
-<tbody id="cases-body"></tbody>
-</table>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-xs text-gray-500 pr-1">استان</label>
+<select id="cases-province-filter" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl py-2 text-sm h-10">
+<option value="">همه استان‌ها</option>
+</select>
+<div class="flex flex-col gap-2 mt-4">
+<button id="cases-apply-filter" class="bg-brand-dark text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-opacity-90 transition flex items-center justify-center gap-2 shadow-sm h-10 w-full"><i class="fa-solid fa-filter"></i>اعمال فیلتر</button>
+<div class="flex gap-2">
+<button id="cases-export-excel" class="flex-1 bg-white border border-green-200 text-green-700 px-2 py-2 rounded-xl text-xs font-medium hover:bg-green-50 transition flex items-center justify-center gap-1 h-10"><i class="fa-solid fa-file-excel text-green-600"></i>اکسل</button>
+<button id="cases-clear-filters" class="flex-1 bg-white border border-gray-200 text-gray-600 px-2 py-2 rounded-xl text-xs font-medium hover:bg-gray-50 transition flex items-center justify-center gap-1 h-10"><i class="fa-solid fa-xmark"></i>حذف</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-xs text-gray-500 pr-1">دسته‌بندی</label>
+<select id="cases-category-filter" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl py-2 text-sm h-10">
+<option value="">همه دسته‌ها</option>
+<option value="کیفری">کیفری</option>
+<option value="حقوقی">حقوقی</option>
+<option value="خانواده">خانواده</option>
+<option value="تجاری">تجاری</option>
+<option value="کار">کار</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-xs text-gray-500 pr-1">وضعیت</label>
+<select id="cases-status-filter" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl py-2 text-sm h-10">
+<option value="">همه</option>
+<option value="new">در انتظار پذیرش</option>
+<option value="accepted">فعال</option>
+<option value="pending_confirmation">در حال بررسی</option>
+<option value="done">مختومه</option>
+<option value="rejected">رد شده</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-xs text-gray-500 pr-1">تاریخ ثبت (از)</label>
+<input id="cases-date-filter" type="date" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl py-2 px-2 text-sm h-10">
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-xs text-gray-500 pr-1">هزینه پرونده</label>
+<select id="cases-price-filter" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-xl py-2 text-sm h-10">
+<option value="">همه مبالغ</option>
+<option value="low">زیر ۱۰ میلیون</option>
+<option value="mid">۱۰ تا ۵۰ میلیون</option>
+<option value="high">بالای ۵۰ میلیون</option>
+</select>
 </div>
 </div>
 </div>
 
+<div class="bg-white rounded-3xl shadow-soft border border-gray-100 flex-1 flex flex-col overflow-hidden mb-6">
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-sm text-right whitespace-nowrap">
+<thead class="text-xs text-gray-500 bg-gray-50/50 border-b border-gray-100">
+<tr>
+<th class="px-6 py-4 font-medium">شماره پرونده</th>
+<th class="px-6 py-4 font-medium">موضوع</th>
+<th class="px-6 py-4 font-medium">موکل</th>
+<th class="px-6 py-4 font-medium">وکیل</th>
+<th class="px-6 py-4 font-medium">استان</th>
+<th class="px-6 py-4 font-medium">هزینه پرونده</th>
+<th class="px-6 py-4 font-medium">تاریخ ثبت</th>
+<th class="px-6 py-4 font-medium">وضعیت</th>
+<th class="px-6 py-4 font-medium text-center">عملیات</th>
+</tr>
+</thead>
+<tbody id="cases-body" class="divide-y divide-gray-100"></tbody>
+</table>
+</div>
+<div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white shrink-0">
+<span class="text-sm text-gray-500" id="cases-pagination-info">—</span>
+</div>
+</div>
+
+<div class="bg-white rounded-3xl p-6 shadow-soft border border-gray-100 flex flex-col" id="case-detail-panel"></div>
+</div>
+
 <!-- ===================== VIEW: LAWYERS ===================== -->
 <div id="view-lawyers" class="view hidden-view">
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
-<div class="flex justify-between items-center mb-4">
-<h3 class="text-lg font-bold text-gray-800">وکلاء</h3>
-<input type="search" id="lawyers-search" placeholder="جستجوی وکیل…" class="bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-6" id="lawyers-stat-cards"></div>
+
+<div class="flex gap-6 items-start">
+<div class="flex-1 flex flex-col gap-6">
+
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h2 class="text-lg font-bold text-gray-800">فیلترهای جستجو</h2>
 </div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="relative lg:col-span-2">
+<input id="lawyers-search" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20" placeholder="جستجوی وکیل..." type="text">
+<i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
+</div>
+<select id="lawyers-province-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<option value="">استان</option>
+</select>
+<select id="lawyers-city-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<option value="">شهر</option>
+</select>
+<select id="lawyers-specialty-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<option value="">تخصص</option>
+</select>
+<select id="lawyers-status-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<option value="">وضعیت</option>
+<option value="approved">فعال</option>
+<option value="pending">در انتظار</option>
+<option value="rejected">تعلیق شده</option>
+<option value="not_submitted">غیرفعال</option>
+</select>
+<select id="lawyers-online-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<option value="">آنلاین / آفلاین</option>
+<option value="online">آنلاین</option>
+<option value="offline">آفلاین</option>
+</select>
+<select id="lawyers-rating-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+<option value="">امتیاز</option>
+<option value="4">۴ ستاره به بالا</option>
+<option value="3">۳ ستاره به بالا</option>
+</select>
+</div>
+<div class="flex justify-start items-center gap-3 mt-2 border-t border-gray-100 pt-4">
+<button id="lawyers-export-excel" class="px-6 py-2 bg-[#107C41] text-white text-sm rounded-xl shadow-sm hover:bg-[#0c5c30] transition-colors flex items-center gap-2"><i class="fa-solid fa-download text-xs"></i>خروجی اکسل</button>
+<button id="lawyers-clear-filters" class="px-6 py-2 border border-gray-200 text-brand-dark text-sm rounded-xl hover:bg-gray-50 transition-colors">حذف فیلترها</button>
+<button id="lawyers-apply-filter" class="px-6 py-2 bg-brand-dark text-white text-sm rounded-xl shadow-sm hover:bg-opacity-90 transition-colors flex items-center gap-2"><i class="fa-solid fa-magnifying-glass text-xs"></i>فیلتر</button>
+</div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden flex-1 flex flex-col">
 <div class="overflow-x-auto">
-<table class="w-full text-sm text-right text-gray-600">
-<thead class="text-xs text-gray-500 bg-gray-50"><tr><th class="px-4 py-3 rounded-r-lg">نام</th><th class="px-4 py-3">تخصص‌ها</th><th class="px-4 py-3">استان اصلی</th><th class="px-4 py-3">تلفن</th><th class="px-4 py-3">احراز هویت</th><th class="px-4 py-3 rounded-l-lg">وضعیت دسترسی</th></tr></thead>
+<table class="w-full text-right text-sm">
+<thead>
+<tr class="text-gray-500 bg-gray-50/50 border-b border-gray-100">
+<th class="py-5 px-6 font-semibold w-12">تصویر</th>
+<th class="py-5 px-6 font-semibold">نام وکیل</th>
+<th class="py-5 px-6 font-semibold">شماره پروانه</th>
+<th class="py-5 px-6 font-semibold">تخصص</th>
+<th class="py-5 px-6 font-semibold">استان</th>
+<th class="py-5 px-6 font-semibold">شهر</th>
+<th class="py-5 px-6 font-semibold text-center">پرونده‌های فعال</th>
+<th class="py-5 px-6 font-semibold text-center">امتیاز</th>
+<th class="py-5 px-6 font-semibold">آخرین ورود</th>
+<th class="py-5 px-6 font-semibold text-center">وضعیت</th>
+<th class="py-5 px-6 font-semibold text-left">عملیات</th>
+</tr>
+</thead>
 <tbody id="lawyers-body"></tbody>
 </table>
+</div>
+<div class="mt-auto border-t border-gray-100 p-4 flex items-center justify-between bg-white">
+<span class="text-sm text-gray-500" id="lawyers-pagination-info">—</span>
+</div>
+</div>
+</div>
+
+<div class="w-[320px] bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col shrink-0">
+<h3 class="text-lg font-bold text-gray-800 mb-6">فعالیت‌های اخیر وکلا</h3>
+<div class="relative pl-2 flex-1 overflow-y-auto no-scrollbar" id="lawyers-activity-timeline"></div>
 </div>
 </div>
 </div>
@@ -370,28 +518,100 @@
 </div>
 </div>
 
-<!-- ===================== VIEW: TRANSACTIONS ===================== -->
+<!-- ===================== VIEW: TRANSACTIONS (مالی) ===================== -->
 <div id="view-transactions" class="view hidden-view">
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6" id="transactions-summary"></div>
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 mb-6">
-<h3 class="text-lg font-bold text-gray-800 mb-4">پرداخت‌های موکلین</h3>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-2" id="finance-summary-cards"></div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 my-6">
+<div class="col-span-1 bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col justify-center gap-4">
+<div class="flex justify-between items-center pb-4 border-b border-gray-100">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-brand-dark/10 flex items-center justify-center text-brand-dark"><i class="fa-solid fa-circle-check text-sm"></i></div>
+<div><div class="text-xl font-bold" id="finance-successful-count">۰</div><div class="text-xs text-gray-500">تراکنش موفق (پرونده‌های دارای پرداخت)</div></div>
+</div>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i class="fa-solid fa-circle-xmark text-sm"></i></div>
+<div><div class="text-xl font-bold" id="finance-pending-count">۰</div><div class="text-xs text-gray-500">کمیسیون پرداخت‌نشده</div></div>
+</div>
+</div>
+</div>
+<div class="col-span-1 md:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex items-center justify-between">
+<div><h4 class="text-xs text-gray-500 mb-1">پرونده‌های دارای پرداخت</h4><div class="text-xl font-bold text-brand-dark" id="finance-paid-cases-count">۰</div></div>
+<div class="flex items-end gap-1.5 h-12" id="finance-sparkline-1"></div>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex items-center justify-between">
+<div><h4 class="text-xs text-gray-500 mb-1">پرونده‌های مختومه</h4><div class="text-xl font-bold text-[#D4AF37]" id="finance-done-count">۰</div></div>
+<div class="flex items-end gap-1.5 h-12" id="finance-sparkline-2"></div>
+</div>
+</div>
+</div>
+
+<div class="flex flex-col lg:flex-row gap-6">
+<div class="flex-1 flex flex-col gap-6">
+
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 w-full h-[400px] relative flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<div><h3 class="text-lg font-bold text-gray-800">روند درآمدی سالانه</h3><p class="text-xs text-gray-500 mt-1">مقایسه درآمد کل با سهم پلتفرم</p></div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-brand-dark"></span><span class="text-xs text-gray-500">درآمد کل</span></div>
+<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#D4AF37]"></span><span class="text-xs text-gray-500">سهم پلتفرم</span></div>
+</div>
+</div>
+<div class="flex-1 relative"><canvas id="financeYearChart"></canvas></div>
+</div>
+
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col gap-6">
+<div class="flex justify-between items-center">
+<h3 class="text-lg font-bold text-gray-800">تراکنش‌های اخیر</h3>
+<a data-view="cases" class="nav-link text-brand-dark text-sm hover:underline cursor-pointer">مشاهده همه</a>
+</div>
 <div class="overflow-x-auto">
-<table class="w-full text-sm text-right text-gray-600">
-<thead class="text-xs text-gray-500 bg-gray-50"><tr><th class="px-4 py-3 rounded-r-lg">موضوع پرونده</th><th class="px-4 py-3">موکل</th><th class="px-4 py-3">مبلغ پرداختی</th><th class="px-4 py-3 rounded-l-lg">تاریخ پرداخت</th></tr></thead>
-<tbody id="client-payments-body"></tbody>
+<table class="w-full text-right border-collapse text-sm">
+<thead>
+<tr class="border-b border-gray-100 text-gray-500">
+<th class="pb-4 font-medium pl-4">شناسه پرونده</th>
+<th class="pb-4 font-medium px-4">موکل</th>
+<th class="pb-4 font-medium px-4">مبلغ (تومان)</th>
+<th class="pb-4 font-medium px-4">تاریخ و زمان</th>
+<th class="pb-4 font-medium pr-4 text-left">وضعیت</th>
+</tr>
+</thead>
+<tbody id="finance-transactions-body"></tbody>
 </table>
 </div>
 </div>
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
-<div class="flex justify-between items-center mb-4">
-<h3 class="text-lg font-bold text-gray-800">کمیسیون وکلا</h3>
-<input type="search" id="transactions-search" placeholder="جستجوی تراکنش…" class="bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
 </div>
-<div class="overflow-x-auto">
-<table class="w-full text-sm text-right text-gray-600">
-<thead class="text-xs text-gray-500 bg-gray-50"><tr><th class="px-4 py-3 rounded-r-lg">پرونده</th><th class="px-4 py-3">وکیل</th><th class="px-4 py-3">مبلغ کمیسیون</th><th class="px-4 py-3">وضعیت پرداخت</th><th class="px-4 py-3">تاریخ اتمام</th><th class="px-4 py-3 rounded-l-lg">عملیات</th></tr></thead>
-<tbody id="transactions-body"></tbody>
-</table>
+
+<div class="w-full lg:w-[360px] flex flex-col gap-6">
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col gap-6">
+<div><h3 class="text-lg font-bold text-gray-800 mb-1">وضعیت درگاه‌های پرداخت</h3><p class="text-xs text-gray-500">مانیتورینگ لحظه‌ای سرویس‌ها</p></div>
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center p-4 rounded-xl border border-gray-100">
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100"><span class="font-bold text-gray-400 text-xs">ZP</span></div><div><div class="font-bold text-sm">زرین‌پال</div><div class="text-xs text-gray-500">درگاه اصلی</div></div></div>
+<span class="flex items-center gap-1.5 text-brand-dark bg-brand-dark/10 px-2.5 py-1 rounded-md text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500"></span> فعال</span>
+</div>
+<div class="flex justify-between items-center p-4 rounded-xl border border-gray-100">
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100"><span class="font-bold text-gray-400 text-xs">SM</span></div><div><div class="font-bold text-sm">بانک سامان</div><div class="text-xs text-gray-500">درگاه پشتیبان ۱</div></div></div>
+<span class="flex items-center gap-1.5 text-brand-dark bg-brand-dark/10 px-2.5 py-1 rounded-md text-xs font-bold"><span class="w-2 h-2 rounded-full bg-green-500"></span> فعال</span>
+</div>
+<div class="flex justify-between items-center p-4 rounded-xl border border-orange-200 bg-orange-50/50">
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center border border-orange-100"><span class="font-bold text-gray-400 text-xs">ML</span></div><div><div class="font-bold text-sm">بانک ملت</div><div class="text-xs text-gray-500">درگاه پشتیبان ۲</div></div></div>
+<span class="flex items-center gap-1.5 text-orange-600 bg-orange-100 px-2.5 py-1 rounded-md text-xs font-bold"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> کندی شبکه</span>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col gap-6">
+<h3 class="text-lg font-bold text-gray-800">عملیات سریع</h3>
+<div class="flex flex-col gap-3">
+<button data-view="cases" class="nav-link w-full bg-brand-dark text-white py-4 rounded-xl hover:opacity-90 transition-opacity flex justify-center items-center gap-2"><i class="fa-solid fa-list-check"></i>بررسی تسویه‌های در انتظار</button>
+<button data-view="reports" class="nav-link w-full bg-transparent border-2 border-gray-200 text-gray-800 py-4 rounded-xl hover:bg-gray-50 transition-colors flex justify-center items-center gap-2"><i class="fa-solid fa-chart-line"></i>گزارش‌گیری پیشرفته</button>
+<button data-view="settings" class="nav-link w-full bg-transparent border-2 border-gray-200 text-gray-800 py-4 rounded-xl hover:bg-gray-50 transition-colors flex justify-center items-center gap-2"><i class="fa-solid fa-gears"></i>تنظیمات درگاه‌ها</button>
+</div>
+</div>
 </div>
 </div>
 </div>
