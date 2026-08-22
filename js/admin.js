@@ -5,11 +5,38 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let PROFILE = null;
 let performanceChartInstance = null, categoryChartInstance = null;
 let clientsLineChartInstance = null, clientsDonutChartInstance = null;
-let financeYearChartInstance = null;
+let financeYearChartInstance = null, reportsCasesChartInstance = null, reportsIncomeChartInstance = null;
 let clientsRawData = [], clientsCasesMap = {}, clientsCaseStatusMap = {};
 let lawyersRawData = [], lawyersActiveCasesMap = {};
 let casesRawData = [], casesNameByPhone = {}, casesLawyerByCaseId = {};
 const IRAN_PROVINCES = ['آذربایجان شرقی', 'آذربایجان غربی', 'اردبیل', 'اصفهان', 'البرز', 'ایلام', 'بوشهر', 'تهران', 'چهارمحال و بختیاری', 'خراسان جنوبی', 'خراسان رضوی', 'خراسان شمالی', 'خوزستان', 'زنجان', 'سمنان', 'سیستان و بلوچستان', 'فارس', 'قزوین', 'قم', 'کردستان', 'کرمان', 'کرمانشاه', 'کهگیلویه و بویراحمد', 'گلستان', 'گیلان', 'لرستان', 'مازندران', 'مرکزی', 'هرمزگان', 'همدان', 'یزد'];
+
+const PRICING_DATA = [
+  { cat: 'کیفری', sub: 'تخلفات رانندگی', price: 5000000 },
+  { cat: 'کیفری', sub: 'اموال/مالی، حقوق معنوی، مواد مخدر، کلاهبرداری اینترنتی، هک', price: 9000000 },
+  { cat: 'کیفری', sub: 'جعل/تخریب رایانه‌ای، آبرو و حیثیت رایانه‌ای', price: 11000000 },
+  { cat: 'کیفری', sub: 'منافی عفت، خشونت خانوادگی، هتک حرمت منزل، جاسوسی رایانه‌ای', price: 13000000 },
+  { cat: 'کیفری', sub: 'تمامیت جسمانی/قتل، امنیت کشور', price: 15000000 },
+  { cat: 'کیفری', sub: 'سایر موارد کیفری', price: 10000000 },
+  { cat: 'حقوقی', sub: 'مطالبه اجور، چک/سفته، استرداد لاشه، مطالبه ثمن، صلح و سازش، استرداد اموال، سهم‌الشرکه', price: 7000000 },
+  { cat: 'حقوقی', sub: 'الزام به سند، ابطال سند، تخلیه ید، اجاره‌بها، حق کسب، اجرت‌المثل، زوجیت/نسب/حجر، خلع ید/افراز، مزاحمت/تصرف، اعتراض به ثبت', price: 9000000 },
+  { cat: 'حقوقی', sub: 'تقسیم ترکه، ابطال سهام، خسارت، ضرر و زیان، اختلاف پیمان، ابطال اجرائیه', price: 11000000 },
+  { cat: 'حقوقی', sub: 'حق تالیف/اختراع، دعاوی موجر/مستاجر پیچیده', price: 13000000 },
+  { cat: 'حقوقی', sub: 'سایر موارد حقوقی', price: 10000000 },
+  { cat: 'خانواده', sub: 'نامزدی، جهیزیه، تمکین/نشوز', price: 7000000 },
+  { cat: 'خانواده', sub: 'مهریه، نفقه، حضانت، نسب، نکاح، شروط ضمن عقد، ازدواج مجدد', price: 9000000 },
+  { cat: 'خانواده', sub: 'طلاق، رشد/حجر، ولایت قهری، غایب مفقودالاثر، سرپرستی', price: 11000000 },
+  { cat: 'خانواده', sub: 'اهدای جنین، تغییر جنسیت', price: 13000000 },
+  { cat: 'خانواده', sub: 'سایر موارد خانواده', price: 9000000 },
+  { cat: 'تجاری', sub: 'اسناد تجاری، قراردادهای تجاری، تجار و بازرگانان', price: 11000000 },
+  { cat: 'تجاری', sub: 'شرکت‌های تجاری، علائم تجاری، طرح‌های صنعتی', price: 13000000 },
+  { cat: 'تجاری', sub: 'ورشکستگی تجار', price: 15000000 },
+  { cat: 'تجاری', sub: 'سایر موارد تجاری', price: 13000000 },
+  { cat: 'کار', sub: 'عدم پرداخت حقوق، مطالبه مزایا، عیدی/پاداش، عدم تنظیم قرارداد', price: 5000000 },
+  { cat: 'کار', sub: 'حق سنوات، عدم واریز بیمه، اثبات رابطه کاری، استعفا/تسویه', price: 7000000 },
+  { cat: 'کار', sub: 'اخراج غیرقانونی', price: 9000000 },
+  { cat: 'کار', sub: 'سایر موارد کار', price: 7000000 },
+];
 
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
@@ -111,8 +138,9 @@ function navigate(view) {
   if (view === 'clients') loadClients();
   if (view === 'transactions') loadFinance();
   if (view === 'reports') loadReports();
+  if (view === 'notifications') loadNotifications();
+  if (view === 'settings') loadSettings();
   if (view === 'users') loadUsers();
-  if (view === 'support') loadSupport();
 }
 document.querySelectorAll('.nav-link[data-view]').forEach(l => l.addEventListener('click', (e) => { e.preventDefault(); navigate(l.dataset.view); }));
 
@@ -132,38 +160,14 @@ function trendBadge(percent, isUp) {
 }
 function dashboardStatCards({ casesToday, activeCount, unansweredCount, lawyersOnline, failedPayments, incomeToday, incomeMonth, clientsOnline }) {
   return `
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>${trendBadge(20, true)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">ثبت پرونده امروز</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(casesToday)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>${trendBadge(16, true)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">پرونده فعال</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(activeCount)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>${trendBadge(8, false)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">پرونده بدون پاسخ</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(unansweredCount)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>${trendBadge(18, true)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">وکلای آنلاین</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(lawyersOnline)}</h3><span class="text-[10px] text-gray-400">وکیل</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></div>${trendBadge(12, false)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">پرداخت ناموفق</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(failedPayments)}</h3><span class="text-[10px] text-gray-400">پرداخت</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>${trendBadge(32, true)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">درآمد امروز</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${formatMoney(incomeToday)}</h3><span class="text-[10px] text-gray-400">تومان</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>${toPersianDigits(8)}٪</span></div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">درآمد این ماه</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${formatMoney(incomeMonth)}</h3><span class="text-[10px] text-gray-400">تومان</span></div></div>
-  </div>
-  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4 transition-all hover:shadow-md">
-    <div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>${trendBadge(24, true)}</div>
-    <div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">موکلان آنلاین</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(clientsOnline)}</h3><span class="text-[10px] text-gray-400">موکل</span></div></div>
-  </div>`;
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>${trendBadge(20, true)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">ثبت پرونده امروز</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(casesToday)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>${trendBadge(16, true)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">پرونده فعال</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(activeCount)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>${trendBadge(8, false)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">پرونده بدون پاسخ</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(unansweredCount)}</h3><span class="text-[10px] text-gray-400">پرونده</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>${trendBadge(18, true)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">وکلای آنلاین</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(lawyersOnline)}</h3><span class="text-[10px] text-gray-400">وکیل</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></div>${trendBadge(12, false)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">پرداخت ناموفق</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(failedPayments)}</h3><span class="text-[10px] text-gray-400">پرداخت</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>${trendBadge(32, true)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">درآمد امروز</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${formatMoney(incomeToday)}</h3><span class="text-[10px] text-gray-400">تومان</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><span class="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>${toPersianDigits(8)}٪</span></div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">درآمد این ماه</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${formatMoney(incomeMonth)}</h3><span class="text-[10px] text-gray-400">تومان</span></div></div></div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4"><div class="flex justify-between items-start"><div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>${trendBadge(24, true)}</div><div class="text-right"><p class="text-xs text-gray-500 font-medium mb-1">موکلان آنلاین</p><div class="flex items-baseline gap-1 justify-start flex-row-reverse"><h3 class="text-2xl font-bold text-gray-900">${toPersianDigits(clientsOnline)}</h3><span class="text-[10px] text-gray-400">موکل</span></div></div></div>`;
 }
 async function loadDashboard() {
   document.querySelector('#stat-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
@@ -205,13 +209,11 @@ function renderPerformanceChart(allCases) {
   if (performanceChartInstance) performanceChartInstance.destroy();
   Chart.defaults.font.family = "'Vazirmatn', sans-serif";
   performanceChartInstance = new Chart(ctx.getContext('2d'), {
-    type: 'bar',
-    data: { labels: days, datasets: [
+    type: 'bar', data: { labels: days, datasets: [
       { label: 'درآمد (میلیون تومان)', data: incomeDataset, backgroundColor: '#1A1E2F', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
       { label: 'پذیرش پرونده', data: acceptDataset, backgroundColor: '#D4AF37', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 },
       { label: 'ثبت پرونده', data: regDataset, backgroundColor: '#85d6b9', borderRadius: 10, barPercentage: 0.6, categoryPercentage: 0.8 }
-    ]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#F1F5F9' } }, x: { grid: { display: false } } }, interaction: { mode: 'index', intersect: false } }
+    ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', align: 'start', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#F1F5F9' } }, x: { grid: { display: false } } }, interaction: { mode: 'index', intersect: false } }
   });
 }
 function renderCategoryChart(allCases) {
@@ -244,23 +246,17 @@ async function loadCases() {
   const tbody = document.querySelector('#cases-body');
   tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6">در حال بارگذاری...</td></tr>';
   document.querySelector('#cases-stat-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
-
   const { data: cases, error } = await sb.from('cases').select('*').order('created_at', { ascending: false });
   if (error) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
-
   const { data: profiles } = await sb.from('profiles').select('phone, first_name, last_name');
   casesNameByPhone = {};
   (profiles || []).forEach(p => casesNameByPhone[p.phone] = `${p.first_name || ''} ${p.last_name || ''}`.trim());
-
   const { data: conversations } = await sb.from('conversations').select('case_id, lawyer_phone');
   casesLawyerByCaseId = {};
   (conversations || []).forEach(conv => casesLawyerByCaseId[conv.case_id] = conv.lawyer_phone);
-
   casesRawData = cases || [];
-
   const provinceSelect = document.querySelector('#cases-province-filter');
   provinceSelect.innerHTML = '<option value="">همه استان‌ها</option>' + IRAN_PROVINCES.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
-
   renderCasesStatCards();
   applyCasesFilters();
   if (casesRawData.length > 0) renderCaseDetail(casesRawData[0]); else document.querySelector('#case-detail-panel').innerHTML = '<p class="text-gray-400 text-sm text-center py-6">پرونده‌ای برای نمایش جزئیات وجود ندارد</p>';
@@ -272,17 +268,14 @@ function renderCasesStatCards() {
   const pending = casesRawData.filter(c => c.status === 'new').length;
   const active = casesRawData.filter(c => c.status === 'accepted').length;
   const total = casesRawData.length;
-  const card = (label, value, unit, icon, bg, color) => `
-  <div class="bg-white rounded-3xl p-5 shadow-soft border border-gray-100 flex flex-col justify-between">
-    <div class="flex justify-between items-start mb-2"><div class="w-10 h-10 rounded-full ${bg} ${color} flex items-center justify-center"><i class="fa-solid ${icon}"></i></div><div class="text-left"><div class="text-xs text-gray-500 mb-1">${label}</div><div class="font-bold text-lg text-gray-900">${value}</div></div></div>
-  </div>`;
+  const card = (label, value, icon, bg, color) => `<div class="bg-white rounded-3xl p-5 shadow-soft border border-gray-100 flex flex-col justify-between"><div class="flex justify-between items-start mb-2"><div class="w-10 h-10 rounded-full ${bg} ${color} flex items-center justify-center"><i class="fa-solid ${icon}"></i></div><div class="text-left"><div class="text-xs text-gray-500 mb-1">${label}</div><div class="font-bold text-lg text-gray-900">${value}</div></div></div></div>`;
   document.querySelector('#cases-stat-cards').innerHTML =
-    card('درآمد پرونده‌ها', formatMoney(totalIncome), 'تومان', 'fa-dollar-sign', 'bg-amber-50', 'text-amber-500') +
-    card('مختومه', toPersianDigits(closed), '', 'fa-check-double', 'bg-purple-50', 'text-purple-600') +
-    card('در حال بررسی', toPersianDigits(reviewing), '', 'fa-file-lines', 'bg-blue-50', 'text-blue-500') +
-    card('در انتظار پذیرش', toPersianDigits(pending), '', 'fa-clock', 'bg-orange-50', 'text-orange-500') +
-    card('پرونده فعال', toPersianDigits(active), '', 'fa-play', 'bg-green-50', 'text-green-500') +
-    card('کل پرونده‌ها', toPersianDigits(total), '', 'fa-folder-plus', 'bg-brand-dark/10', 'text-brand-dark');
+    card('درآمد پرونده‌ها', formatMoney(totalIncome), 'fa-dollar-sign', 'bg-amber-50', 'text-amber-500') +
+    card('مختومه', toPersianDigits(closed), 'fa-check-double', 'bg-purple-50', 'text-purple-600') +
+    card('در حال بررسی', toPersianDigits(reviewing), 'fa-file-lines', 'bg-blue-50', 'text-blue-500') +
+    card('در انتظار پذیرش', toPersianDigits(pending), 'fa-clock', 'bg-orange-50', 'text-orange-500') +
+    card('پرونده فعال', toPersianDigits(active), 'fa-play', 'bg-green-50', 'text-green-500') +
+    card('کل پرونده‌ها', toPersianDigits(total), 'fa-folder-plus', 'bg-brand-dark/10', 'text-brand-dark');
 }
 function getFilteredCases() {
   const search = (document.querySelector('#cases-search').value || '').trim();
@@ -297,12 +290,7 @@ function getFilteredCases() {
     if (category && c.case_type !== category) return false;
     if (status && c.status !== status) return false;
     if (dateFrom && new Date(c.created_at) < new Date(dateFrom)) return false;
-    if (price) {
-      const p = Number(c.price || 0);
-      if (price === 'low' && !(p < 10000000)) return false;
-      if (price === 'mid' && !(p >= 10000000 && p <= 50000000)) return false;
-      if (price === 'high' && !(p > 50000000)) return false;
-    }
+    if (price) { const p = Number(c.price || 0); if (price === 'low' && !(p < 10000000)) return false; if (price === 'mid' && !(p >= 10000000 && p <= 50000000)) return false; if (price === 'high' && !(p > 50000000)) return false; }
     return true;
   });
 }
@@ -344,40 +332,28 @@ function renderCaseDetail(c) {
     { label: c.status === 'done' ? 'مختومه' : 'در حال پیگیری', done: c.status === 'done', current: c.status !== 'done' }
   ];
   document.querySelector('#case-detail-panel').innerHTML = `
-  <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-    <h2 class="font-bold text-gray-800 text-lg flex items-center gap-3">پرونده شماره ${toPersianDigits(String(c.id).slice(0, 8))}<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}">${STATUS_LABELS[c.status] || c.status}</span></h2>
-  </div>
+  <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4"><h2 class="font-bold text-gray-800 text-lg flex items-center gap-3">پرونده شماره ${toPersianDigits(String(c.id).slice(0, 8))}<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}">${STATUS_LABELS[c.status] || c.status}</span></h2></div>
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-    <div><h3 class="font-bold text-gray-900 mb-4 text-base">اطلاعات پرونده</h3>
-      <div class="space-y-3 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100">
-        <div class="flex justify-between"><span class="text-gray-500">موضوع پرونده:</span><span class="font-medium text-gray-900">${escapeHtml(c.case_type)}</span></div>
-        <div class="flex justify-between"><span class="text-gray-500">دسته‌بندی:</span><span class="font-medium text-gray-900">${escapeHtml(c.case_type)}</span></div>
-        <div class="flex justify-between"><span class="text-gray-500">زیر دسته:</span><span class="font-medium text-gray-900">${escapeHtml(c.subcategory || '—')}</span></div>
-        <div class="flex justify-between"><span class="text-gray-500">تاریخ ثبت:</span><span class="font-medium text-gray-900" dir="ltr">${formatDateTime(c.created_at)}</span></div>
-        <div class="flex justify-between"><span class="text-gray-500">استان:</span><span class="font-medium text-gray-900">${escapeHtml(c.province || '—')}</span></div>
-      </div>
-    </div>
-    <div><h3 class="font-bold text-gray-900 mb-4 text-base">اشخاص مرتبط</h3>
-      <div class="space-y-3">
-        <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100"><div class="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 text-xl"><i class="fa-regular fa-user"></i></div><div><div class="font-bold text-gray-900">${escapeHtml(clientName)} <span class="text-xs text-gray-500 font-normal mr-1">(موکل)</span></div><div class="text-xs text-gray-500 mt-1" dir="ltr">${toPersianDigits(c.client_phone || '—')}</div></div></div>
-        ${lawyerName ? `<div class="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100"><div class="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 text-xl"><i class="fa-solid fa-user-tie"></i></div><div><div class="font-bold text-gray-900">${escapeHtml(lawyerName)} <span class="text-xs text-gray-500 font-normal mr-1">(وکیل)</span></div></div></div>` : `<div class="text-xs text-gray-400 p-3">هنوز وکیلی پذیرفته نشده است</div>`}
-      </div>
-    </div>
-    <div><h3 class="font-bold text-gray-900 mb-4 text-base">وضعیت مالی</h3>
-      <div class="flex items-center justify-between ${c.price ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100'} p-4 rounded-2xl border">
-        <div class="w-12 h-12 rounded-full bg-white ${c.price ? 'text-green-600' : 'text-gray-400'} flex items-center justify-center shadow-sm text-xl"><i class="fa-regular fa-credit-card"></i></div>
-        <div class="text-left"><div class="flex items-center justify-end gap-2 text-sm mb-1"><span class="font-bold text-gray-900">${formatMoney(c.price)} تومان</span><span class="text-gray-500">مبلغ پرداختی:</span></div>
-        <div class="flex items-center justify-end gap-2 text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${c.price ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${c.price ? 'پرداخت کامل' : 'بدون پرداخت'}</span><span class="text-gray-500">وضعیت:</span></div></div>
-      </div>
-    </div>
-    <div><h3 class="font-bold text-gray-900 mb-4 text-base">مسیر پرونده</h3>
-      <div class="relative pr-2">
-        ${steps.map((s, i) => `<div class="stepper-item ${s.done ? 'completed' : ''} relative ${i < steps.length - 1 ? 'pb-4' : ''} flex items-start gap-4">
-          <div class="w-5 h-5 rounded-full ${s.done ? 'bg-brand-dark text-white' : s.current ? 'bg-white border-2 border-brand-dark text-brand-dark' : 'bg-gray-200'} flex items-center justify-center shrink-0 z-10 shadow-[0_0_0_4px_white]"><div class="w-1.5 h-1.5 ${s.done ? 'bg-white' : 'bg-brand-dark'} rounded-full"></div></div>
-          <div class="flex-1 flex flex-col pt-0.5"><span class="text-xs font-medium ${s.current ? 'font-bold text-brand-dark' : 'text-gray-900'}">${s.label}</span>${s.time ? `<span class="text-[10px] text-gray-500" dir="ltr">${formatDateTime(s.time)}</span>` : ''}</div>
-        </div>`).join('')}
-      </div>
-    </div>
+    <div><h3 class="font-bold text-gray-900 mb-4 text-base">اطلاعات پرونده</h3><div class="space-y-3 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100">
+      <div class="flex justify-between"><span class="text-gray-500">موضوع پرونده:</span><span class="font-medium text-gray-900">${escapeHtml(c.case_type)}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">زیر دسته:</span><span class="font-medium text-gray-900">${escapeHtml(c.subcategory || '—')}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">تاریخ ثبت:</span><span class="font-medium text-gray-900" dir="ltr">${formatDateTime(c.created_at)}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">استان:</span><span class="font-medium text-gray-900">${escapeHtml(c.province || '—')}</span></div>
+    </div></div>
+    <div><h3 class="font-bold text-gray-900 mb-4 text-base">اشخاص مرتبط</h3><div class="space-y-3">
+      <div class="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100"><div class="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 text-xl"><i class="fa-regular fa-user"></i></div><div><div class="font-bold text-gray-900">${escapeHtml(clientName)} <span class="text-xs text-gray-500 font-normal mr-1">(موکل)</span></div><div class="text-xs text-gray-500 mt-1" dir="ltr">${toPersianDigits(c.client_phone || '—')}</div></div></div>
+      ${lawyerName ? `<div class="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100"><div class="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 text-xl"><i class="fa-solid fa-user-tie"></i></div><div><div class="font-bold text-gray-900">${escapeHtml(lawyerName)} <span class="text-xs text-gray-500 font-normal mr-1">(وکیل)</span></div></div></div>` : `<div class="text-xs text-gray-400 p-3">هنوز وکیلی پذیرفته نشده است</div>`}
+    </div></div>
+    <div><h3 class="font-bold text-gray-900 mb-4 text-base">وضعیت مالی</h3><div class="flex items-center justify-between ${c.price ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100'} p-4 rounded-2xl border">
+      <div class="w-12 h-12 rounded-full bg-white ${c.price ? 'text-green-600' : 'text-gray-400'} flex items-center justify-center shadow-sm text-xl"><i class="fa-regular fa-credit-card"></i></div>
+      <div class="text-left"><div class="flex items-center justify-end gap-2 text-sm mb-1"><span class="font-bold text-gray-900">${formatMoney(c.price)} تومان</span><span class="text-gray-500">مبلغ پرداختی:</span></div><div class="flex items-center justify-end gap-2 text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${c.price ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${c.price ? 'پرداخت کامل' : 'بدون پرداخت'}</span><span class="text-gray-500">وضعیت:</span></div></div>
+    </div></div>
+    <div><h3 class="font-bold text-gray-900 mb-4 text-base">مسیر پرونده</h3><div class="relative pr-2">
+      ${steps.map((s, i) => `<div class="stepper-item ${s.done ? 'completed' : ''} relative ${i < steps.length - 1 ? 'pb-4' : ''} flex items-start gap-4">
+        <div class="w-5 h-5 rounded-full ${s.done ? 'bg-brand-dark text-white' : s.current ? 'bg-white border-2 border-brand-dark text-brand-dark' : 'bg-gray-200'} flex items-center justify-center shrink-0 z-10 shadow-[0_0_0_4px_white]"><div class="w-1.5 h-1.5 ${s.done ? 'bg-white' : 'bg-brand-dark'} rounded-full"></div></div>
+        <div class="flex-1 flex flex-col pt-0.5"><span class="text-xs font-medium ${s.current ? 'font-bold text-brand-dark' : 'text-gray-900'}">${s.label}</span>${s.time ? `<span class="text-[10px] text-gray-500" dir="ltr">${formatDateTime(s.time)}</span>` : ''}</div>
+      </div>`).join('')}
+    </div></div>
   </div>`;
 }
 document.addEventListener('input', (e) => { if (e.target.id === 'cases-search') applyCasesFilters(); });
@@ -385,21 +361,13 @@ document.addEventListener('change', (e) => { if (['cases-province-filter', 'case
 document.addEventListener('click', (e) => {
   if (e.target.id === 'cases-apply-filter' || e.target.closest('#cases-apply-filter')) applyCasesFilters();
   if (e.target.id === 'cases-clear-filters' || e.target.closest('#cases-clear-filters')) {
-    document.querySelector('#cases-search').value = '';
-    document.querySelector('#cases-province-filter').value = '';
-    document.querySelector('#cases-category-filter').value = '';
-    document.querySelector('#cases-status-filter').value = '';
-    document.querySelector('#cases-date-filter').value = '';
-    document.querySelector('#cases-price-filter').value = '';
+    document.querySelector('#cases-search').value = ''; document.querySelector('#cases-province-filter').value = ''; document.querySelector('#cases-category-filter').value = ''; document.querySelector('#cases-status-filter').value = ''; document.querySelector('#cases-date-filter').value = ''; document.querySelector('#cases-price-filter').value = '';
     applyCasesFilters();
   }
   if (e.target.id === 'cases-export-excel' || e.target.closest('#cases-export-excel')) {
     const filtered = getFilteredCases();
     const rows = filtered.map(c => ({ 'شماره پرونده': String(c.id).slice(0, 8), 'موضوع': c.case_type, 'موکل': casesNameByPhone[c.client_phone] || c.client_phone || '', 'استان': c.province || '', 'هزینه': c.price || 0, 'تاریخ ثبت': formatDate(c.created_at), 'وضعیت': STATUS_LABELS[c.status] || c.status }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'پرونده‌ها');
-    XLSX.writeFile(wb, `پرونده‌ها-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'پرونده‌ها'); XLSX.writeFile(wb, `پرونده‌ها-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 });
 
@@ -412,10 +380,7 @@ async function loadLawyers() {
   if (error) { tbody.innerHTML = '<tr><td colspan="11" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
   const { data: conversations } = await sb.from('conversations').select('lawyer_phone, cases(status)');
   lawyersActiveCasesMap = {};
-  (conversations || []).forEach(conv => {
-    const status = conv.cases?.status;
-    if (status === 'accepted' || status === 'pending_confirmation') lawyersActiveCasesMap[conv.lawyer_phone] = (lawyersActiveCasesMap[conv.lawyer_phone] || 0) + 1;
-  });
+  (conversations || []).forEach(conv => { const status = conv.cases?.status; if (status === 'accepted' || status === 'pending_confirmation') lawyersActiveCasesMap[conv.lawyer_phone] = (lawyersActiveCasesMap[conv.lawyer_phone] || 0) + 1; });
   lawyersRawData = data || [];
   const provinceSelect = document.querySelector('#lawyers-province-filter');
   provinceSelect.innerHTML = '<option value="">استان</option>' + IRAN_PROVINCES.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
@@ -424,9 +389,7 @@ async function loadLawyers() {
   lawyersRawData.forEach(l => (l.specialties || '').split('،').map(s => s.trim()).filter(Boolean).forEach(s => allSpecialties.add(s)));
   specialtySelect.innerHTML = '<option value="">تخصص</option>' + [...allSpecialties].sort().map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   document.querySelector('#lawyers-city-filter').innerHTML = '<option value="">شهر</option>';
-  renderLawyersStatCards();
-  applyLawyersFilters();
-  renderLawyersActivityTimeline();
+  renderLawyersStatCards(); applyLawyersFilters(); renderLawyersActivityTimeline();
 }
 function renderLawyersStatCards() {
   const total = lawyersRawData.length;
@@ -494,10 +457,7 @@ function messageLawyer(phone) { toast('این قابلیت به‌زودی اض�
 function exportLawyersToExcel() {
   const filtered = getFilteredLawyers();
   const rows = filtered.map(l => ({ 'نام': `${l.first_name || ''} ${l.last_name || ''}`, 'شماره پروانه': l.license_number || '', 'تخصص': l.specialties || '', 'استان': l.main_province || '', 'تلفن': l.phone || '', 'پرونده‌های فعال': lawyersActiveCasesMap[l.phone] || 0, 'وضعیت': LAWYER_STATUS_LABELS[l.verification_status || 'not_submitted'], 'آخرین ورود': l.last_active ? formatDate(l.last_active) : '' }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'وکلا');
-  XLSX.writeFile(wb, `وکلا-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'وکلا'); XLSX.writeFile(wb, `وکلا-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 function renderLawyersActivityTimeline() {
   const box = document.querySelector('#lawyers-activity-timeline');
@@ -505,22 +465,13 @@ function renderLawyersActivityTimeline() {
   const recentlyActive = [...lawyersRawData].filter(l => l.last_active).sort((a, b) => new Date(b.last_active) - new Date(a.last_active)).slice(0, 6);
   if (recentlyActive.length === 0) { box.innerHTML = '<p class="text-gray-400 text-xs">هنوز فعالیتی ثبت نشده است</p>'; return; }
   box.innerHTML = `<div class="absolute right-[11px] top-2 bottom-0 w-0.5 bg-gray-100"></div>` + recentlyActive.map(l => `
-    <div class="relative flex gap-4 mb-6">
-      <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center z-10 shrink-0 mt-0.5 ring-4 ring-white"><i class="fa-solid fa-right-to-bracket text-[11px]"></i></div>
-      <div><p class="text-sm font-semibold text-gray-900">ورود به سیستم</p><p class="text-xs text-gray-500 mt-1">${escapeHtml(l.first_name)} ${escapeHtml(l.last_name)} (${escapeHtml(l.main_province || '—')})</p><p class="text-[10px] text-gray-500 mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded-full">${formatDate(l.last_active)}</p></div>
-    </div>`).join('');
+    <div class="relative flex gap-4 mb-6"><div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center z-10 shrink-0 mt-0.5 ring-4 ring-white"><i class="fa-solid fa-right-to-bracket text-[11px]"></i></div><div><p class="text-sm font-semibold text-gray-900">ورود به سیستم</p><p class="text-xs text-gray-500 mt-1">${escapeHtml(l.first_name)} ${escapeHtml(l.last_name)} (${escapeHtml(l.main_province || '—')})</p><p class="text-[10px] text-gray-500 mt-1 bg-gray-100 inline-block px-2 py-0.5 rounded-full">${formatDate(l.last_active)}</p></div></div>`).join('');
 }
 document.addEventListener('input', (e) => { if (e.target.id === 'lawyers-search') applyLawyersFilters(); });
 document.addEventListener('change', (e) => { if (['lawyers-province-filter', 'lawyers-city-filter', 'lawyers-specialty-filter', 'lawyers-status-filter', 'lawyers-online-filter', 'lawyers-rating-filter'].includes(e.target.id)) applyLawyersFilters(); });
 document.addEventListener('click', (e) => {
   if (e.target.id === 'lawyers-clear-filters' || e.target.closest('#lawyers-clear-filters')) {
-    document.querySelector('#lawyers-search').value = '';
-    document.querySelector('#lawyers-province-filter').value = '';
-    document.querySelector('#lawyers-city-filter').value = '';
-    document.querySelector('#lawyers-specialty-filter').value = '';
-    document.querySelector('#lawyers-status-filter').value = '';
-    document.querySelector('#lawyers-online-filter').value = '';
-    document.querySelector('#lawyers-rating-filter').value = '';
+    document.querySelector('#lawyers-search').value = ''; document.querySelector('#lawyers-province-filter').value = ''; document.querySelector('#lawyers-city-filter').value = ''; document.querySelector('#lawyers-specialty-filter').value = ''; document.querySelector('#lawyers-status-filter').value = ''; document.querySelector('#lawyers-online-filter').value = ''; document.querySelector('#lawyers-rating-filter').value = '';
     applyLawyersFilters();
   }
   if (e.target.id === 'lawyers-apply-filter' || e.target.closest('#lawyers-apply-filter')) applyLawyersFilters();
@@ -536,24 +487,14 @@ async function loadClients() {
   if (error) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
   const { data: cases } = await sb.from('cases').select('client_phone, price, status');
   clientsCasesMap = {}; clientsCaseStatusMap = {};
-  (cases || []).forEach(c => {
-    const phone = c.client_phone; if (!phone) return;
-    if (!clientsCasesMap[phone]) clientsCasesMap[phone] = { count: 0, total: 0 };
-    clientsCasesMap[phone].count += 1; clientsCasesMap[phone].total += Number(c.price || 0);
-    if (!clientsCaseStatusMap[phone]) clientsCaseStatusMap[phone] = [];
-    clientsCaseStatusMap[phone].push(c.status);
-  });
+  (cases || []).forEach(c => { const phone = c.client_phone; if (!phone) return; if (!clientsCasesMap[phone]) clientsCasesMap[phone] = { count: 0, total: 0 }; clientsCasesMap[phone].count += 1; clientsCasesMap[phone].total += Number(c.price || 0); if (!clientsCaseStatusMap[phone]) clientsCaseStatusMap[phone] = []; clientsCaseStatusMap[phone].push(c.status); });
   clientsRawData = clients || [];
   const provinceSelect = document.querySelector('#clients-province-filter');
   provinceSelect.innerHTML = '<option value="">همه استان‌ها</option>' + IRAN_PROVINCES.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   const citySelect = document.querySelector('#clients-city-filter');
   const cities = [...new Set(clientsRawData.map(c => c.residence_city).filter(Boolean))].sort();
   citySelect.innerHTML = '<option value="">همه شهرها</option>' + cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-  renderClientsStatCards();
-  applyClientsFilters();
-  renderClientsLineChart();
-  renderClientsDonutChart();
-  renderClientsRecentList();
+  renderClientsStatCards(); applyClientsFilters(); renderClientsLineChart(); renderClientsDonutChart(); renderClientsRecentList();
 }
 function renderClientsStatCards() {
   const total = clientsRawData.length;
@@ -586,13 +527,7 @@ function getFilteredClients() {
     if (status && c.verification_status !== status) return false;
     if (dateFrom && new Date(c.created_at) < new Date(dateFrom)) return false;
     if (caseStatus) { const statuses = clientsCaseStatusMap[c.phone] || []; if (!statuses.includes(caseStatus)) return false; }
-    if (payment) {
-      const total = (clientsCasesMap[c.phone] || { total: 0 }).total;
-      if (payment === 'none' && total !== 0) return false;
-      if (payment === 'low' && !(total > 0 && total < 10000000)) return false;
-      if (payment === 'mid' && !(total >= 10000000 && total <= 50000000)) return false;
-      if (payment === 'high' && !(total > 50000000)) return false;
-    }
+    if (payment) { const total = (clientsCasesMap[c.phone] || { total: 0 }).total; if (payment === 'none' && total !== 0) return false; if (payment === 'low' && !(total > 0 && total < 10000000)) return false; if (payment === 'mid' && !(total >= 10000000 && total <= 50000000)) return false; if (payment === 'high' && !(total > 50000000)) return false; }
     return true;
   });
 }
@@ -632,22 +567,13 @@ function messageClient(phone) { toast('این قابلیت به‌زودی اض�
 function exportClientsToExcel() {
   const filtered = getFilteredClients();
   const rows = filtered.map(c => { const stat = clientsCasesMap[c.phone] || { count: 0, total: 0 }; return { 'نام': `${c.first_name || ''} ${c.last_name || ''}`, 'کد ملی': c.national_code || '', 'تلفن': c.phone || '', 'استان': c.residence_province || '', 'شهر': c.residence_city || '', 'تعداد پرونده': stat.count, 'مبلغ پرداختی (تومان)': stat.total, 'وضعیت': CLIENT_STATUS_LABELS[c.verification_status || 'not_submitted'], 'تاریخ ثبت‌نام': formatDate(c.created_at) }; });
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'موکلان');
-  XLSX.writeFile(wb, `موکلان-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'موکلان'); XLSX.writeFile(wb, `موکلان-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 document.addEventListener('input', (e) => { if (e.target.id === 'clients-search') applyClientsFilters(); });
 document.addEventListener('change', (e) => { if (['clients-province-filter', 'clients-city-filter', 'clients-status-filter', 'clients-date-filter', 'clients-case-status-filter', 'clients-payment-filter'].includes(e.target.id)) applyClientsFilters(); });
 document.addEventListener('click', (e) => {
   if (e.target.id === 'clients-clear-filters' || e.target.closest('#clients-clear-filters')) {
-    document.querySelector('#clients-search').value = '';
-    document.querySelector('#clients-province-filter').value = '';
-    document.querySelector('#clients-city-filter').value = '';
-    document.querySelector('#clients-status-filter').value = '';
-    document.querySelector('#clients-date-filter').value = '';
-    document.querySelector('#clients-case-status-filter').value = '';
-    document.querySelector('#clients-payment-filter').value = '';
+    document.querySelector('#clients-search').value = ''; document.querySelector('#clients-province-filter').value = ''; document.querySelector('#clients-city-filter').value = ''; document.querySelector('#clients-status-filter').value = ''; document.querySelector('#clients-date-filter').value = ''; document.querySelector('#clients-case-status-filter').value = ''; document.querySelector('#clients-payment-filter').value = '';
     applyClientsFilters();
   }
   if (e.target.id === 'clients-apply-filter' || e.target.closest('#clients-apply-filter')) applyClientsFilters();
@@ -678,12 +604,7 @@ function renderClientsLineChart() {
   if (!ctx) return;
   if (clientsLineChartInstance) clientsLineChartInstance.destroy();
   const days = [], counts = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    days.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { day: 'numeric', month: 'short' })));
-    counts.push(clientsRawData.filter(c => (c.created_at || '').slice(0, 10) === key).length);
-  }
+  for (let i = 29; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const key = d.toISOString().slice(0, 10); days.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { day: 'numeric', month: 'short' }))); counts.push(clientsRawData.filter(c => (c.created_at || '').slice(0, 10) === key).length); }
   Chart.defaults.font.family = "'Vazirmatn', sans-serif";
   clientsLineChartInstance = new Chart(ctx.getContext('2d'), { type: 'line', data: { labels: days, datasets: [{ label: 'ثبت‌نام', data: counts, borderColor: '#10B981', borderWidth: 2, tension: 0.3, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } }, grid: { color: '#F3F4F6' } } } } });
 }
@@ -707,11 +628,9 @@ async function loadFinance() {
   document.querySelector('#finance-summary-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
   const { data: allCases, error } = await sb.from('cases').select('*').order('created_at', { ascending: false });
   if (error) { document.querySelector('#finance-summary-cards').innerHTML = '<p class="p-5 text-red-600 text-sm">خطا: ' + escapeHtml(error.message) + '</p>'; return; }
-
   const { data: profiles } = await sb.from('profiles').select('phone, first_name, last_name');
   const nameByPhone = {};
   (profiles || []).forEach(p => nameByPhone[p.phone] = `${p.first_name || ''} ${p.last_name || ''}`.trim());
-
   const paidCases = allCases.filter(c => c.price);
   const totalIncome = paidCases.reduce((s, c) => s + Number(c.price || 0), 0);
   const today = new Date().toISOString().slice(0, 10);
@@ -723,12 +642,7 @@ async function loadFinance() {
   const paidCommission = doneCases.filter(c => c.commission_paid).reduce((s, c) => s + Number(c.commission_amount || 0), 0);
   const unpaidCommission = totalCommission - paidCommission;
   const platformShare = totalIncome - totalCommission;
-
-  const card = (label, value, unit, icon, bg, color) => `
-  <div class="bg-white rounded-[24px] p-8 shadow-soft border border-gray-100 hover:shadow-md transition-all flex flex-col justify-between min-h-[160px]">
-    <div class="flex justify-between items-start mb-4"><span class="text-xs text-gray-500 uppercase tracking-wider">${label}</span><div class="w-10 h-10 rounded-full ${bg} flex items-center justify-center ${color}"><i class="fa-solid ${icon} text-lg"></i></div></div>
-    <div class="text-right"><div class="flex items-baseline gap-2 mb-2 justify-end"><h3 class="text-3xl font-extrabold text-gray-900">${value}</h3><span class="text-sm text-gray-500">${unit}</span></div></div>
-  </div>`;
+  const card = (label, value, unit, icon, bg, color) => `<div class="bg-white rounded-[24px] p-8 shadow-soft border border-gray-100 flex flex-col justify-between min-h-[160px]"><div class="flex justify-between items-start mb-4"><span class="text-xs text-gray-500 uppercase tracking-wider">${label}</span><div class="w-10 h-10 rounded-full ${bg} flex items-center justify-center ${color}"><i class="fa-solid ${icon} text-lg"></i></div></div><div class="text-right"><div class="flex items-baseline gap-2 mb-2 justify-end"><h3 class="text-3xl font-extrabold text-gray-900">${value}</h3><span class="text-sm text-gray-500">${unit}</span></div></div></div>`;
   document.querySelector('#finance-summary-cards').innerHTML =
     card('موجودی کل پلتفرم', formatMoney(totalIncome), 'تومان', 'fa-building-columns', 'bg-brand-dark/10', 'text-brand-dark') +
     card('درآمد امروز', formatMoney(incomeToday), 'تومان', 'fa-calendar-day', 'bg-[#D4AF37]/10', 'text-[#D4AF37]') +
@@ -736,31 +650,15 @@ async function loadFinance() {
     card('مجموع سهم وکلا (کل)', formatMoney(totalCommission), 'تومان', 'fa-users', 'bg-gray-100', 'text-gray-700') +
     card('مجموع سهم پلتفرم (کل)', formatMoney(platformShare), 'تومان', 'fa-chart-pie', 'bg-brand-dark/10', 'text-brand-dark') +
     card('تسویه‌های در انتظار', formatMoney(unpaidCommission), 'تومان', 'fa-hourglass-half', 'bg-orange-100', 'text-orange-600');
-
   document.querySelector('#finance-successful-count').textContent = toPersianDigits(paidCases.length);
   document.querySelector('#finance-pending-count').textContent = toPersianDigits(doneCases.filter(c => !c.commission_paid).length);
   document.querySelector('#finance-paid-cases-count').textContent = toPersianDigits(paidCases.length);
   document.querySelector('#finance-done-count').textContent = toPersianDigits(doneCases.length);
-
-  const sparkline = (containerId, colorClass) => {
-    const el = document.querySelector(containerId);
-    if (!el) return;
-    el.innerHTML = Array.from({ length: 7 }, () => `<div class="w-2 ${colorClass} rounded-full" style="height:${20 + Math.random() * 30}px"></div>`).join('');
-  };
-  sparkline('#finance-sparkline-1', 'bg-brand-dark/40');
-  sparkline('#finance-sparkline-2', 'bg-[#D4AF37]/50');
-
+  const sparkline = (containerId, colorClass) => { const el = document.querySelector(containerId); if (!el) return; el.innerHTML = Array.from({ length: 7 }, () => `<div class="w-2 ${colorClass} rounded-full" style="height:${20 + Math.random() * 30}px"></div>`).join(''); };
+  sparkline('#finance-sparkline-1', 'bg-brand-dark/40'); sparkline('#finance-sparkline-2', 'bg-[#D4AF37]/50');
   const tbody = document.querySelector('#finance-transactions-body');
   const recent = paidCases.slice(0, 6);
-  tbody.innerHTML = recent.length === 0 ? '<tr><td colspan="5" class="text-center py-6 text-gray-400">هنوز تراکنشی ثبت نشده است</td></tr>' : recent.map(c => `
-    <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-      <td class="py-4 pl-4 font-mono text-sm text-gray-500">#${toPersianDigits(String(c.id).slice(0, 6))}</td>
-      <td class="py-4 px-4 font-bold">${escapeHtml(nameByPhone[c.client_phone] || c.client_phone || '—')}</td>
-      <td class="py-4 px-4">${formatMoney(c.price)}</td>
-      <td class="py-4 px-4 text-gray-500">${formatDateTime(c.created_at)}</td>
-      <td class="py-4 pr-4 text-left"><span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-dark/10 text-brand-dark text-xs font-bold"><span class="w-1.5 h-1.5 rounded-full bg-brand-dark"></span> موفق</span></td>
-    </tr>`).join('');
-
+  tbody.innerHTML = recent.length === 0 ? '<tr><td colspan="5" class="text-center py-6 text-gray-400">هنوز تراکنشی ثبت نشده است</td></tr>' : recent.map(c => `<tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"><td class="py-4 pl-4 font-mono text-sm text-gray-500">#${toPersianDigits(String(c.id).slice(0, 6))}</td><td class="py-4 px-4 font-bold">${escapeHtml(nameByPhone[c.client_phone] || c.client_phone || '—')}</td><td class="py-4 px-4">${formatMoney(c.price)}</td><td class="py-4 px-4 text-gray-500">${formatDateTime(c.created_at)}</td><td class="py-4 pr-4 text-left"><span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-dark/10 text-brand-dark text-xs font-bold"><span class="w-1.5 h-1.5 rounded-full bg-brand-dark"></span> موفق</span></td></tr>`).join('');
   renderFinanceYearChart(allCases);
 }
 function renderFinanceYearChart(allCases) {
@@ -768,49 +666,88 @@ function renderFinanceYearChart(allCases) {
   if (!ctx) return;
   if (financeYearChartInstance) financeYearChartInstance.destroy();
   const months = [], totalData = [], platformData = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    months.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { month: 'long' })));
-    const monthCases = allCases.filter(c => (c.created_at || '').slice(0, 7) === key);
-    const total = monthCases.reduce((s, c) => s + Number(c.price || 0), 0) / 1000000;
-    const platform = total - (monthCases.reduce((s, c) => s + Number(c.commission_amount || 0), 0) / 1000000);
-    totalData.push(total);
-    platformData.push(Math.max(platform, 0));
-  }
+  for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i); const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; months.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { month: 'long' }))); const monthCases = allCases.filter(c => (c.created_at || '').slice(0, 7) === key); const total = monthCases.reduce((s, c) => s + Number(c.price || 0), 0) / 1000000; const platform = total - (monthCases.reduce((s, c) => s + Number(c.commission_amount || 0), 0) / 1000000); totalData.push(total); platformData.push(Math.max(platform, 0)); }
   Chart.defaults.font.family = "'Vazirmatn', sans-serif";
-  financeYearChartInstance = new Chart(ctx.getContext('2d'), {
-    type: 'bar',
-    data: { labels: months, datasets: [
-      { label: 'درآمد کل (میلیون تومان)', data: totalData, backgroundColor: '#1A1E2F', borderRadius: 6 },
-      { label: 'سهم پلتفرم (میلیون تومان)', data: platformData, backgroundColor: '#D4AF37', borderRadius: 6 }
-    ]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } }
-  });
+  financeYearChartInstance = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: months, datasets: [{ label: 'درآمد کل (میلیون تومان)', data: totalData, backgroundColor: '#1A1E2F', borderRadius: 6 }, { label: 'سهم پلتفرم (میلیون تومان)', data: platformData, backgroundColor: '#D4AF37', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } } });
+}
+async function markCommissionPaid(caseId) {
+  const { error } = await sb.from('cases').update({ commission_paid: true }).eq('id', caseId);
+  if (error) { toast('خطا: ' + error.message, true); return; }
+  toast('با موفقیت ثبت شد'); loadFinance();
 }
 
-// ===================== REPORTS / USERS / SUPPORT =====================
+// ===================== REPORTS =====================
 async function loadReports() {
-  const { data: cases, error } = await sb.from('cases').select('status');
+  document.querySelector('#reports-overview-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
+  const { data: allCases, error } = await sb.from('cases').select('*');
+  const { data: lawyersCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'lawyer').eq('verification_status', 'approved');
+  const { data: clientsCountData, count: clientsCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client');
+  if (error) { document.querySelector('#reports-overview-cards').innerHTML = '<p class="p-5 text-red-600 text-sm">خطا: ' + escapeHtml(error.message) + '</p>'; return; }
+
+  const total = (allCases || []).length;
+  const doneCases = (allCases || []).filter(c => c.status === 'done');
+  const activeCases = (allCases || []).filter(c => c.status === 'accepted');
+  const totalIncome = (allCases || []).reduce((s, c) => s + Number(c.price || 0), 0);
+  const successRate = total > 0 ? Math.round((doneCases.length / total) * 100) : 0;
+
+  const { count: lawyersApprovedCount } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'lawyer').eq('verification_status', 'approved');
+
+  const card = (label, value, unit, icon) => `<div class="bg-white p-8 rounded-2xl shadow-soft border border-gray-100 hover:shadow-md transition-all"><div class="flex justify-between items-start mb-4"><span class="text-xs text-gray-500">${label}</span><span class="p-2 rounded-xl bg-brand-dark/10 text-brand-dark"><i class="fa-solid ${icon}"></i></span></div><div class="text-3xl font-extrabold text-gray-900">${value} ${unit ? `<span class="text-sm text-gray-500 font-normal">${unit}</span>` : ''}</div></div>`;
+  document.querySelector('#reports-overview-cards').innerHTML =
+    card('کل درآمد', formatMoney(totalIncome), 'تومان', 'fa-wallet') +
+    card('کل پرونده‌ها (فعال)', toPersianDigits(activeCases.length), '', 'fa-folder') +
+    card('کل وکلا (تایید شده)', toPersianDigits(lawyersApprovedCount || 0), '', 'fa-gavel') +
+    card('کل موکلان (ثبت‌نامی)', toPersianDigits(clientsCount || 0), '', 'fa-users') +
+    card('نرخ موفقیت پرونده‌ها', toPersianDigits(successRate) + '٪', '', 'fa-circle-check') +
+    card('پرونده‌های مختومه', toPersianDigits(doneCases.length), '', 'fa-check-double');
+
+  renderReportsCharts(allCases || []);
+
   const tbody = document.querySelector('#reports-status-body');
-  if (error) { tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
-  const total = (cases || []).length;
   const counts = {};
-  (cases || []).forEach(c => counts[c.status] = (counts[c.status] || 0) + 1);
+  (allCases || []).forEach(c => counts[c.status] = (counts[c.status] || 0) + 1);
   if (total === 0) { tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-gray-400">داده‌ای وجود ندارد</td></tr>'; return; }
   tbody.innerHTML = Object.entries(counts).map(([status, count]) => `<tr class="border-b border-gray-50"><td class="px-4 py-3">${escapeHtml(STATUS_LABELS[status] || status)}</td><td class="px-4 py-3">${toPersianDigits(count)}</td><td class="px-4 py-3">${toPersianDigits(((count / total) * 100).toFixed(0))}%</td></tr>`).join('');
 }
-async function loadUsers() {
-  const tbody = document.querySelector('#users-body');
-  const { data, error } = await sb.from('admin_profiles').select('*');
-  if (error) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
-  tbody.innerHTML = (data || []).map(u => `<tr class="border-b border-gray-50"><td class="px-4 py-3">${escapeHtml(u.full_name)}</td><td class="px-4 py-3">${escapeHtml(u.username)}</td><td class="px-4 py-3">${escapeHtml(u.title || '—')}</td><td class="px-4 py-3">${u.role === 'ceo' ? 'مدیرعامل' : 'مدیر بخش حقوقی'}</td></tr>`).join('');
+function renderReportsCharts(allCases) {
+  const months = [], caseCounts = [], incomeCounts = [];
+  for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i); const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; months.push(toPersianDigits(new Date(d).toLocaleDateString('fa-IR', { month: 'long' }))); const monthCases = allCases.filter(c => (c.created_at || '').slice(0, 7) === key); caseCounts.push(monthCases.length); incomeCounts.push(monthCases.reduce((s, c) => s + Number(c.price || 0), 0) / 1000000); }
+  Chart.defaults.font.family = "'Vazirmatn', sans-serif";
+  const ctx1 = document.getElementById('reportsCasesChart');
+  if (ctx1) { if (reportsCasesChartInstance) reportsCasesChartInstance.destroy(); reportsCasesChartInstance = new Chart(ctx1.getContext('2d'), { type: 'bar', data: { labels: months, datasets: [{ data: caseCounts, backgroundColor: '#1A1E2F', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } } }); }
+  const ctx2 = document.getElementById('reportsIncomeChart');
+  if (ctx2) { if (reportsIncomeChartInstance) reportsIncomeChartInstance.destroy(); reportsIncomeChartInstance = new Chart(ctx2.getContext('2d'), { type: 'bar', data: { labels: months, datasets: [{ data: incomeCounts, backgroundColor: '#D4AF37', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } } }); }
 }
-async function loadSupport() {
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'reports-export-excel' || e.target.closest('#reports-export-excel')) {
+    const rows = Object.entries(STATUS_LABELS).map(([k, v]) => ({ وضعیت: v }));
+    const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'گزارش‌ها'); XLSX.writeFile(wb, `گزارش‌ها-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+});
+
+// ===================== NOTIFICATIONS =====================
+async function loadNotifications() {
+  document.querySelector('#notif-kpi-cards').innerHTML = '<p class="p-5 text-gray-400 text-sm">در حال بارگذاری...</p>';
+  const { data, error, count } = await sb.from('contact_messages').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+  if (error) { document.querySelector('#notif-kpi-cards').innerHTML = '<p class="p-5 text-red-600 text-sm">خطا: ' + escapeHtml(error.message) + '</p>'; return; }
+  const all = data || [];
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = all.filter(m => (m.created_at || '').slice(0, 10) === today).length;
+  const unreadCount = all.filter(m => !m.is_read).length;
+  const card = (label, value, icon, bg, color) => `<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-col justify-between"><div class="flex justify-between items-start mb-3"><div class="w-10 h-10 rounded-full ${bg} flex items-center justify-center ${color}"><i class="fa-solid ${icon}"></i></div></div><div><h3 class="text-2xl font-bold text-gray-900">${value}</h3><p class="text-xs text-gray-500 mt-1">${label}</p></div></div>`;
+  document.querySelector('#notif-kpi-cards').innerHTML =
+    card('مجموع پیام‌ها', toPersianDigits(count || 0), 'fa-envelope', 'bg-brand-dark/10', 'text-brand-dark') +
+    card('دریافتی امروز', toPersianDigits(todayCount), 'fa-calendar-day', 'bg-brand-dark/10', 'text-brand-dark') +
+    card('خوانده نشده', toPersianDigits(unreadCount), 'fa-bell', 'bg-yellow-100', 'text-yellow-700') +
+    card('نیاز به بررسی', toPersianDigits(unreadCount), 'fa-triangle-exclamation', 'bg-red-100', 'text-red-600') +
+    card('کل ارسال‌شده', '۰', 'fa-paper-plane', 'bg-brand-dark/10', 'text-brand-dark');
+  loadSupport(all);
+}
+async function loadSupport(preloaded) {
   const tbody = document.querySelector('#support-body');
   tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6">در حال بارگذاری...</td></tr>';
-  const { data, error } = await sb.from('contact_messages').select('*').order('created_at', { ascending: false });
-  if (error) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
+  let data = preloaded;
+  if (!data) { const res = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }); data = res.data; }
   if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-400">هنوز پیامی ثبت نشده است</td></tr>'; return; }
   tbody.innerHTML = data.map(m => `<tr class="border-b border-gray-50 hover:bg-gray-50">
     <td class="px-4 py-3">${!m.is_read ? '<span class="inline-block bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 ml-1">جدید</span>' : ''}${escapeHtml(m.name)}</td>
@@ -823,14 +760,53 @@ async function loadSupport() {
 async function markMessageRead(id) {
   const { error } = await sb.from('contact_messages').update({ is_read: true }).eq('id', id);
   if (error) { toast('خطا: ' + error.message, true); return; }
-  loadSupport();
-  refreshNotifBadge();
+  loadNotifications(); refreshNotifBadge();
 }
-async function markCommissionPaid(caseId) {
-  const { error } = await sb.from('cases').update({ commission_paid: true }).eq('id', caseId);
-  if (error) { toast('خطا: ' + error.message, true); return; }
-  toast('با موفقیت ثبت شد');
-  loadFinance();
+document.addEventListener('click', async (e) => {
+  if (e.target.id === 'notif-mark-all-read') {
+    const { error } = await sb.from('contact_messages').update({ is_read: true }).eq('is_read', false);
+    if (error) { toast('خطا: ' + error.message, true); return; }
+    toast('همه پیام‌ها خوانده شد'); loadNotifications(); refreshNotifBadge();
+  }
+  if (e.target.id === 'notif-send-btn') toast('این قابلیت به‌زودی اضافه می‌شود (نیاز به اتصال سرویس پیامک)');
+});
+
+// ===================== SETTINGS =====================
+function loadSettings() {
+  const pricingBody = document.querySelector('#settings-pricing-body');
+  pricingBody.innerHTML = PRICING_DATA.map(row => `<tr class="border-b border-gray-50">
+    <td class="py-3 px-4 font-medium text-gray-900">${escapeHtml(row.cat)}</td>
+    <td class="py-3 px-4 text-gray-600">${escapeHtml(row.sub)}</td>
+    <td class="py-3 px-4"><input class="bg-gray-50 border border-gray-200 rounded-md px-3 py-1 w-32 text-left" dir="ltr" type="text" value="${toPersianDigits(row.price.toLocaleString('en-US'))}"></td>
+    <td class="py-3 px-4"><button onclick="toast('این قابلیت به‌زودی اضافه می‌شود')" class="text-brand-dark text-xs px-3 py-1.5 rounded-lg border border-brand-dark/30 hover:bg-brand-dark/10">ویرایش</button></td>
+  </tr>`).join('');
+
+  const provincesGrid = document.querySelector('#settings-provinces-grid');
+  provincesGrid.innerHTML = IRAN_PROVINCES.map(p => `
+    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+      <span class="text-sm text-gray-800">${escapeHtml(p)}</span>
+      <label class="relative inline-flex items-center cursor-pointer"><input checked class="sr-only peer" type="checkbox" onclick="toast('این قابلیت به‌زودی اضافه می‌شود')"><div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-brand-dark after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:-translate-x-full relative"></div></label>
+    </div>`).join('');
+
+  document.querySelector('#settings-sessions-body').innerHTML = `
+    <tr class="border-b border-gray-50"><td class="py-4 px-6 flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-desktop"></i></div><div><p class="font-medium text-gray-900">مرورگر فعلی</p><p class="text-xs text-gray-500">این نشست</p></div></td><td class="py-4 px-6 text-gray-500 font-mono text-sm">—</td><td class="py-4 px-6 text-gray-600">—</td><td class="py-4 px-6"><span class="bg-brand-dark/10 text-brand-dark text-xs px-2 py-1 rounded-md">هم‌اکنون (فعلی)</span></td></tr>`;
+
+  document.querySelector('#settings-log-feed').innerHTML = `
+    <div class="bg-gray-50 p-4 rounded-xl border-r-4 border-brand-dark flex flex-col gap-2"><div class="flex justify-between items-start"><div class="flex items-center gap-2"><i class="fa-solid fa-right-to-bracket text-brand-dark"></i><span class="text-sm font-semibold">ورود موفق</span></div><span class="text-xs text-gray-500">اکنون</span></div><p class="text-sm text-gray-500">ورود موفقیت‌آمیز ${escapeHtml(PROFILE?.full_name || '')} به سیستم.</p></div>
+    <p class="text-xs text-gray-400 text-center py-4">لاگ سیستم هنوز به دیتابیس متصل نشده است</p>`;
+
+  document.querySelector('#settings-save-time')?.addEventListener('click', () => toast('این قابلیت به‌زودی اضافه می‌شود'), { once: true });
+  document.querySelector('#settings-dark-toggle')?.addEventListener('change', () => {
+    document.body.classList.toggle('dark');
+  }, { once: true });
+}
+
+// ===================== USERS =====================
+async function loadUsers() {
+  const tbody = document.querySelector('#users-body');
+  const { data, error } = await sb.from('admin_profiles').select('*');
+  if (error) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
+  tbody.innerHTML = (data || []).map(u => `<tr class="border-b border-gray-50"><td class="px-4 py-3">${escapeHtml(u.full_name)}</td><td class="px-4 py-3">${escapeHtml(u.username)}</td><td class="px-4 py-3">${escapeHtml(u.title || '—')}</td><td class="px-4 py-3">${u.role === 'ceo' ? 'مدیرعامل' : 'مدیر بخش حقوقی'}</td></tr>`).join('');
 }
 
 (async function init() {
