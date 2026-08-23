@@ -28,6 +28,11 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .stepper-item:not(:last-child)::after { content: ''; position: absolute; top: 24px; right: 11px; width: 2px; height: calc(100% - 24px); background-color: #e5e7eb; z-index: 0; }
     .stepper-item.completed:not(:last-child)::after { background-color: #1A1E2F; }
+    .excel-btn { padding: 0.5rem 1.5rem; background: #107C41; color: white; font-size: 0.875rem; border-radius: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,.05); display: flex; align-items: center; gap: 0.5rem; transition: background .15s; }
+    .excel-btn:hover { background: #0c5c30; }
+    .notif-tab { padding: 0.5rem 1rem; font-size: 0.875rem; border-radius: 0.5rem 0.5rem 0 0; border-bottom: 2px solid transparent; color: #6b7280; white-space: nowrap; transition: all .15s; cursor: pointer; }
+    .notif-tab:hover { background: #f9fafb; color: #1f2937; }
+    .notif-tab.active { border-bottom-color: #1A1E2F; color: #1A1E2F; background: rgba(26,30,47,0.05); }
 </style>
 </head>
 <body class="flex h-screen overflow-hidden text-sm font-sans">
@@ -95,7 +100,7 @@
 <div class="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 py-2 px-4 rounded-xl border border-gray-100 shadow-sm" id="digital-clock" dir="rtl">--:--:--</div>
 </header>
 
-<div class="flex-1 overflow-y-auto p-6 md:p-8">
+<div class="flex-1 overflow-y-auto p-6 md:p-8" id="main-scroll-area">
 <div class="max-w-[1600px] mx-auto space-y-6">
 
 <div id="view-dashboard" class="view">
@@ -143,7 +148,7 @@
 <div class="md:col-span-3 lg:col-span-5"><div class="relative"><input id="cases-search" class="w-full bg-gray-50 border border-gray-200 rounded-xl pr-10 pl-4 py-2.5 text-sm" placeholder="جستجو در پرونده‌ها..." type="text"><i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i></div></div>
 <div class="flex flex-col gap-1"><label class="text-xs text-gray-500 pr-1">استان</label><select id="cases-province-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 text-sm h-10"><option value="">همه استان‌ها</option></select>
 <div class="flex flex-col gap-2 mt-4"><button id="cases-apply-filter" class="bg-brand-dark text-white px-4 py-2 rounded-xl text-sm font-medium h-10 w-full flex items-center justify-center gap-2"><i class="fa-solid fa-filter"></i>اعمال فیلتر</button>
-<div class="flex gap-2"><button id="cases-export-excel" class="flex-1 bg-white border border-green-200 text-green-700 px-2 py-2 rounded-xl text-xs font-medium h-10 flex items-center justify-center gap-1"><i class="fa-solid fa-file-excel text-green-600"></i>اکسل</button><button id="cases-clear-filters" class="flex-1 bg-white border border-gray-200 text-gray-600 px-2 py-2 rounded-xl text-xs font-medium h-10 flex items-center justify-center gap-1"><i class="fa-solid fa-xmark"></i>حذف</button></div></div>
+<div class="flex gap-2"><button id="cases-export-excel" class="excel-btn flex-1 justify-center text-xs h-10"><i class="fa-solid fa-download text-xs"></i>خروجی اکسل</button><button id="cases-clear-filters" class="flex-1 bg-white border border-gray-200 text-gray-600 px-2 py-2 rounded-xl text-xs font-medium h-10 flex items-center justify-center gap-1"><i class="fa-solid fa-xmark"></i>حذف</button></div></div>
 </div>
 <div class="flex flex-col gap-1"><label class="text-xs text-gray-500 pr-1">دسته‌بندی</label><select id="cases-category-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 text-sm h-10"><option value="">همه دسته‌ها</option><option value="کیفری">کیفری</option><option value="حقوقی">حقوقی</option><option value="خانواده">خانواده</option><option value="تجاری">تجاری</option><option value="کار">کار</option></select></div>
 <div class="flex flex-col gap-1"><label class="text-xs text-gray-500 pr-1">وضعیت</label><select id="cases-status-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 text-sm h-10"><option value="">همه</option><option value="new">در انتظار پذیرش</option><option value="accepted">فعال</option><option value="pending_confirmation">در حال بررسی</option><option value="done">مختومه</option><option value="rejected">رد شده</option></select></div>
@@ -174,7 +179,7 @@
 <select id="lawyers-rating-filter" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm"><option value="">امتیاز</option><option value="4">۴ ستاره به بالا</option><option value="3">۳ ستاره به بالا</option></select>
 </div>
 <div class="flex justify-start items-center gap-3 mt-2 border-t border-gray-100 pt-4">
-<button id="lawyers-export-excel" class="px-6 py-2 bg-[#107C41] text-white text-sm rounded-xl flex items-center gap-2"><i class="fa-solid fa-download text-xs"></i>خروجی اکسل</button>
+<button id="lawyers-export-excel" class="excel-btn"><i class="fa-solid fa-download text-xs"></i>خروجی اکسل</button>
 <button id="lawyers-clear-filters" class="px-6 py-2 border border-gray-200 text-brand-dark text-sm rounded-xl">حذف فیلترها</button>
 <button id="lawyers-apply-filter" class="px-6 py-2 bg-brand-dark text-white text-sm rounded-xl flex items-center gap-2"><i class="fa-solid fa-magnifying-glass text-xs"></i>فیلتر</button>
 </div>
@@ -205,7 +210,7 @@
 </div>
 <div class="flex justify-end items-center mt-5 pt-4 border-t border-gray-100">
 <div class="flex gap-3">
-<button id="clients-export-excel" class="text-sm text-green-700 bg-green-50 border border-green-200 px-4 py-2 rounded-lg flex items-center gap-2"><i class="fa-regular fa-file-excel"></i> خروجی اکسل</button>
+<button id="clients-export-excel" class="excel-btn"><i class="fa-solid fa-download text-xs"></i>خروجی اکسل</button>
 <button id="clients-clear-filters" class="text-sm text-gray-600 bg-white border border-gray-200 px-4 py-2 rounded-lg flex items-center gap-2"><i class="fa-solid fa-xmark text-xs"></i> حذف فیلترها</button>
 <button id="clients-apply-filter" class="text-sm text-white bg-brand-dark px-6 py-2 rounded-lg flex items-center gap-2"><i class="fa-solid fa-filter text-xs"></i> فیلتر</button>
 </div>
@@ -271,7 +276,7 @@
 <div id="view-reports" class="view hidden-view">
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 flex flex-wrap items-center justify-between gap-4 mb-6">
 <h2 class="text-lg font-bold text-gray-800">گزارش‌های اجرایی</h2>
-<button id="reports-export-excel" class="flex items-center gap-2 px-4 py-2 bg-brand-dark text-white rounded-xl text-sm"><i class="fa-solid fa-table"></i>خروجی Excel</button>
+<button id="reports-export-excel" class="excel-btn"><i class="fa-solid fa-download text-xs"></i>خروجی اکسل</button>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6" id="reports-overview-cards"></div>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -316,14 +321,14 @@
 <div class="lg:col-span-8 flex flex-col gap-4">
 <div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100">
 <div class="flex justify-between items-center mb-6"><h2 class="text-lg font-bold text-gray-800">اعلان‌های اخیر</h2><button id="notif-mark-all-read" class="text-brand-dark text-sm flex items-center gap-2 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition-colors"><i class="fa-solid fa-check-double"></i>علامت‌گذاری همه به عنوان خوانده شده</button></div>
-<div class="flex overflow-x-auto pb-2 gap-2 border-b border-gray-100 no-scrollbar">
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-brand-dark text-brand-dark bg-brand-dark/5 whitespace-nowrap">همه موارد</button>
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">خوانده نشده</button>
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>بحرانی</button>
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">مهم</button>
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">پرونده‌ها</button>
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">مالی</button>
-<button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors whitespace-nowrap">سیستم</button>
+<div class="flex overflow-x-auto pb-2 gap-2 border-b border-gray-100 no-scrollbar" id="notif-tabs">
+<button class="notif-tab active" data-filter="all">همه موارد</button>
+<button class="notif-tab" data-filter="unread">خوانده نشده</button>
+<button class="notif-tab" data-filter="critical"><span class="w-2 h-2 rounded-full bg-red-500 inline-block ml-1"></span>بحرانی</button>
+<button class="notif-tab" data-filter="important">مهم</button>
+<button class="notif-tab" data-filter="cases">پرونده‌ها</button>
+<button class="notif-tab" data-filter="finance">مالی</button>
+<button class="notif-tab" data-filter="system">سیستم</button>
 </div>
 </div>
 
@@ -379,7 +384,7 @@
 </div>
 
 <div id="view-settings" class="view hidden-view">
-<div class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 mb-6">
+<div id="settings-gateway-anchor" class="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 mb-6">
 <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-tags text-brand-dark"></i>تعرفه ثبت پرونده</h3>
 <div class="overflow-x-auto"><table class="w-full text-right border-collapse text-sm"><thead><tr class="border-b border-gray-100 bg-gray-50/50 text-gray-500"><th class="py-3 px-4 font-medium">دسته</th><th class="py-3 px-4 font-medium">زیردسته</th><th class="py-3 px-4 font-medium">مبلغ (تومان)</th><th class="py-3 px-4 font-medium">عملیات</th></tr></thead><tbody id="settings-pricing-body"></tbody></table></div>
 </div>

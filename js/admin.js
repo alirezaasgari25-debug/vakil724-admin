@@ -10,6 +10,8 @@ let clientsRawData = [], clientsCasesMap = {}, clientsCaseStatusMap = {};
 let lawyersRawData = [], lawyersActiveCasesMap = {};
 let casesRawData = [], casesNameByPhone = {}, casesLawyerByCaseId = {};
 let pricingRawData = [], provincesRawData = [];
+let supportRawData = [];
+let notifActiveFilter = 'all';
 const IRAN_PROVINCES = ['آذربایجان شرقی', 'آذربایجان غربی', 'اردبیل', 'اصفهان', 'البرز', 'ایلام', 'بوشهر', 'تهران', 'چهارمحال و بختیاری', 'خراسان جنوبی', 'خراسان رضوی', 'خراسان شمالی', 'خوزستان', 'زنجان', 'سمنان', 'سیستان و بلوچستان', 'فارس', 'قزوین', 'قم', 'کردستان', 'کرمان', 'کرمانشاه', 'کهگیلویه و بویراحمد', 'گلستان', 'گیلان', 'لرستان', 'مازندران', 'مرکزی', 'هرمزگان', 'همدان', 'یزد'];
 
 function toast(msg, isError) {
@@ -21,8 +23,21 @@ function toast(msg, isError) {
 }
 function escapeHtml(str) { return (str == null ? '' : String(str)).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function toPersianDigits(input) { return String(input).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
-function formatDate(iso) { if (!iso) return '—'; return toPersianDigits(new Date(iso).toLocaleDateString('fa-IR')); }
-function formatDateTime(iso) { if (!iso) return '—'; const d = new Date(iso); return toPersianDigits(d.toLocaleDateString('fa-IR')) + ' - ' + toPersianDigits(String(d.getHours()).padStart(2,'0')) + ':' + toPersianDigits(String(d.getMinutes()).padStart(2,'0')); }
+
+// ===== تاریخ شمسی (اصلاح‌شده - ترتیب درست) =====
+function formatDate(iso) {
+  if (!iso) return '—';
+  try { return new Intl.DateTimeFormat('fa-IR-u-ca-persian').format(new Date(iso)); }
+  catch (e) { return toPersianDigits(new Date(iso).toLocaleDateString('fa-IR')); }
+}
+function formatDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const datePart = formatDate(iso);
+  const h = toPersianDigits(String(d.getHours()).padStart(2, '0'));
+  const m = toPersianDigits(String(d.getMinutes()).padStart(2, '0'));
+  return datePart + ' - ' + h + ':' + m;
+}
 function formatMoney(n) { return toPersianDigits(Number(n || 0).toLocaleString('en-US')); }
 function initials(name) { return (name || '؟').trim().charAt(0); }
 
@@ -36,9 +51,22 @@ const LAWYER_STATUS_COLORS = { approved: 'bg-green-100 text-green-800', pending:
 const CATEGORY_COLORS = { 'کیفری': '#3B82F6', 'حقوقی': '#10B981', 'خانواده': '#F59E0B', 'تجاری': '#8B5CF6', 'کار': '#EC4899' };
 const CATEGORY_FALLBACK = '#94A3B8';
 
+async function logActivity(actionType, description) {
+  try {
+    await sb.from('admin_activity_log').insert({ admin_id: PROFILE?.id || null, admin_name: PROFILE?.full_name || 'ناشناس', action_type: actionType, description: description });
+  } catch (e) { /* لاگ نباید جلوی کار اصلی رو بگیره */ }
+}
+
+// ===== ساعت و تاریخ هدر (اصلاح‌شده - ترتیب درست: روزهفته، روز، ماه، سال) =====
 function getShamsiDateString() {
-  try { return new Intl.DateTimeFormat('fa-IR-u-ca-persian', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()); }
-  catch (e) { return ''; }
+  try {
+    const date = new Date();
+    const weekday = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { weekday: 'long' }).format(date);
+    const day = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric' }).format(date);
+    const month = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long' }).format(date);
+    const year = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric' }).format(date);
+    return `${weekday} ${day} ${month} ${year}`;
+  } catch (e) { return ''; }
 }
 function updateClock() {
   const now = new Date();
@@ -65,12 +93,16 @@ async function showApp() {
   applyRolePermissions();
   navigate('dashboard');
   refreshNotifBadge();
+  logActivity('login', `${PROFILE.full_name} وارد پنل مدیریت شد`);
 }
 function showLogin() {
   document.querySelector('#login-screen').classList.remove('hidden-view');
   document.querySelector('#app').classList.add('hidden-view');
 }
-async function logout() { await sb.auth.signOut(); PROFILE = null; showLogin(); }
+async function logout() {
+  if (PROFILE) await logActivity('logout', `${PROFILE.full_name} از پنل خارج شد`);
+  await sb.auth.signOut(); PROFILE = null; showLogin();
+}
 function applyRolePermissions() {
   const isCeo = PROFILE && PROFILE.role === 'ceo';
   document.querySelector('#menu-transactions').classList.toggle('hidden-view', !isCeo);
@@ -97,6 +129,7 @@ document.querySelector('#login-form').addEventListener('submit', async (e) => {
 });
 document.querySelector('#logout-btn').addEventListener('click', logout);
 
+// ===== ناوبری (اصلاح‌شده - اسکرول همیشه بالا) =====
 function navigate(view) {
   if (view === 'transactions' && !(PROFILE && PROFILE.role === 'ceo')) { toast('شما به این بخش دسترسی ندارید', true); view = 'dashboard'; }
   document.querySelectorAll('.nav-link[data-view]').forEach(l => {
@@ -105,6 +138,8 @@ function navigate(view) {
     l.classList.toggle('text-[#D4AF37]', active);
   });
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('hidden-view', v.id !== 'view-' + view));
+  const scrollArea = document.querySelector('#main-scroll-area');
+  if (scrollArea) scrollArea.scrollTop = 0;
 
   if (view === 'dashboard') loadDashboard();
   if (view === 'cases') loadCases();
@@ -283,12 +318,12 @@ function applyCasesFilters() {
       <td class="px-6 py-4 text-gray-600">${escapeHtml(lawyerName)}</td>
       <td class="px-6 py-4 text-gray-600">${escapeHtml(c.province || '—')}</td>
       <td class="px-6 py-4 text-gray-600">${formatMoney(c.price)}</td>
-      <td class="px-6 py-4 text-gray-500" dir="ltr">${formatDate(c.created_at)}</td>
+      <td class="px-6 py-4 text-gray-500">${formatDate(c.created_at)}</td>
       <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}">${STATUS_LABELS[c.status] || c.status}</span></td>
       <td class="px-6 py-4"><div class="flex items-center justify-center gap-2">
-        <button onclick="event.stopPropagation();renderCaseDetail(casesRawData.find(x=>x.id==='${c.id}'))" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-brand-dark transition flex items-center justify-center"><i class="fa-solid fa-eye"></i></button>
-        <button onclick="event.stopPropagation();toast('این قابلیت به‌زودی اضافه می‌شود')" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 transition flex items-center justify-center"><i class="fa-solid fa-pen"></i></button>
-        <button onclick="event.stopPropagation();toast('این قابلیت به‌زودی اضافه می‌شود')" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 transition flex items-center justify-center"><i class="fa-regular fa-comment-dots"></i></button>
+        <button type="button" onclick="event.stopPropagation();renderCaseDetail(casesRawData.find(x=>x.id==='${c.id}'))" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-brand-dark transition flex items-center justify-center"><i class="fa-solid fa-eye"></i></button>
+        <button type="button" onclick="event.stopPropagation();toast('این قابلیت به‌زودی اضافه می‌شود')" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 transition flex items-center justify-center"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" onclick="event.stopPropagation();toast('این قابلیت به‌زودی اضافه می‌شود')" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 transition flex items-center justify-center"><i class="fa-regular fa-comment-dots"></i></button>
       </div></td>
     </tr>`;
   }).join('');
@@ -311,7 +346,7 @@ function renderCaseDetail(c) {
     <div><h3 class="font-bold text-gray-900 mb-4 text-base">اطلاعات پرونده</h3><div class="space-y-3 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100">
       <div class="flex justify-between"><span class="text-gray-500">موضوع پرونده:</span><span class="font-medium text-gray-900">${escapeHtml(c.case_type)}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">زیر دسته:</span><span class="font-medium text-gray-900">${escapeHtml(c.subcategory || '—')}</span></div>
-      <div class="flex justify-between"><span class="text-gray-500">تاریخ ثبت:</span><span class="font-medium text-gray-900" dir="ltr">${formatDateTime(c.created_at)}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">تاریخ ثبت:</span><span class="font-medium text-gray-900">${formatDateTime(c.created_at)}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">استان:</span><span class="font-medium text-gray-900">${escapeHtml(c.province || '—')}</span></div>
     </div></div>
     <div><h3 class="font-bold text-gray-900 mb-4 text-base">اشخاص مرتبط</h3><div class="space-y-3">
@@ -325,7 +360,7 @@ function renderCaseDetail(c) {
     <div><h3 class="font-bold text-gray-900 mb-4 text-base">مسیر پرونده</h3><div class="relative pr-2">
       ${steps.map((s, i) => `<div class="stepper-item ${s.done ? 'completed' : ''} relative ${i < steps.length - 1 ? 'pb-4' : ''} flex items-start gap-4">
         <div class="w-5 h-5 rounded-full ${s.done ? 'bg-brand-dark text-white' : s.current ? 'bg-white border-2 border-brand-dark text-brand-dark' : 'bg-gray-200'} flex items-center justify-center shrink-0 z-10 shadow-[0_0_0_4px_white]"><div class="w-1.5 h-1.5 ${s.done ? 'bg-white' : 'bg-brand-dark'} rounded-full"></div></div>
-        <div class="flex-1 flex flex-col pt-0.5"><span class="text-xs font-medium ${s.current ? 'font-bold text-brand-dark' : 'text-gray-900'}">${s.label}</span>${s.time ? `<span class="text-[10px] text-gray-500" dir="ltr">${formatDateTime(s.time)}</span>` : ''}</div>
+        <div class="flex-1 flex flex-col pt-0.5"><span class="text-xs font-medium ${s.current ? 'font-bold text-brand-dark' : 'text-gray-900'}">${s.label}</span>${s.time ? `<span class="text-[10px] text-gray-500">${formatDateTime(s.time)}</span>` : ''}</div>
       </div>`).join('')}
     </div></div>
   </div>`;
@@ -413,9 +448,9 @@ function applyLawyersFilters() {
       <td class="px-4 py-3 text-sm text-gray-500">${l.last_active ? formatDate(l.last_active) : '—'}</td>
       <td class="px-4 py-3 text-center"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${LAWYER_STATUS_COLORS[vs]}">${LAWYER_STATUS_LABELS[vs]}</span></td>
       <td class="px-4 py-3"><div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onclick="viewLawyer('${l.phone}')" class="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-brand-dark/10 rounded-lg transition-colors"><i class="fa-regular fa-eye"></i></button>
-        <button onclick="editLawyer('${l.phone}')" class="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-brand-dark/10 rounded-lg transition-colors"><i class="fa-regular fa-pen-to-square"></i></button>
-        <button onclick="messageLawyer('${l.phone}')" class="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-brand-dark/10 rounded-lg transition-colors"><i class="fa-regular fa-comment-dots"></i></button>
+        <button type="button" onclick="viewLawyer('${l.phone}')" class="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-brand-dark/10 rounded-lg transition-colors"><i class="fa-regular fa-eye"></i></button>
+        <button type="button" onclick="editLawyer('${l.phone}')" class="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-brand-dark/10 rounded-lg transition-colors"><i class="fa-regular fa-pen-to-square"></i></button>
+        <button type="button" onclick="messageLawyer('${l.phone}')" class="p-1.5 text-gray-400 hover:text-brand-dark hover:bg-brand-dark/10 rounded-lg transition-colors"><i class="fa-regular fa-comment-dots"></i></button>
       </div></td>
     </tr>`;
   }).join('');
@@ -523,9 +558,9 @@ function applyClientsFilters() {
       <td class="px-4 py-4 text-gray-600 text-sm text-center">${formatMoney(stat.total)}</td>
       <td class="px-4 py-4 text-center"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${CLIENT_STATUS_COLORS[vs]}">${CLIENT_STATUS_LABELS[vs]}</span></td>
       <td class="px-4 py-4"><div class="flex items-center justify-center gap-2">
-        <button onclick="messageClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-envelope"></i></button>
-        <button onclick="editClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-pen-to-square"></i></button>
-        <button onclick="viewClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-eye"></i></button>
+        <button type="button" onclick="messageClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-envelope"></i></button>
+        <button type="button" onclick="editClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-pen-to-square"></i></button>
+        <button type="button" onclick="viewClient('${c.phone}')" class="text-gray-400 hover:text-brand-dark transition p-1.5 border border-gray-100 rounded-lg"><i class="fa-regular fa-eye"></i></button>
       </div></td>
     </tr>`;
   }).join('');
@@ -697,33 +732,46 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ===================== NOTIFICATIONS =====================
+// ===================== NOTIFICATIONS (تب‌ها اکنون فعال) =====================
 async function loadNotifications() {
   const { data, error, count } = await sb.from('contact_messages').select('*', { count: 'exact' }).order('created_at', { ascending: false });
   if (error) { document.querySelector('#support-body').innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(error.message) + '</td></tr>'; return; }
-  const all = data || [];
+  supportRawData = data || [];
   const today = new Date().toISOString().slice(0, 10);
-  const todayCount = all.filter(m => (m.created_at || '').slice(0, 10) === today).length;
-  const unreadCount = all.filter(m => !m.is_read).length;
+  const todayCount = supportRawData.filter(m => (m.created_at || '').slice(0, 10) === today).length;
+  const unreadCount = supportRawData.filter(m => !m.is_read).length;
   document.querySelector('#notif-total-count').textContent = toPersianDigits(count || 0);
   document.querySelector('#notif-today-count').textContent = toPersianDigits(todayCount);
   document.querySelector('#notif-unread-count').textContent = toPersianDigits(unreadCount);
-  loadSupport(all);
+  renderSupportTable();
 }
-async function loadSupport(preloaded) {
+function renderSupportTable() {
   const tbody = document.querySelector('#support-body');
-  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6">در حال بارگذاری...</td></tr>';
-  let data = preloaded;
-  if (!data) { const res = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }); data = res.data; }
-  if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-400">هنوز پیامی ثبت نشده است</td></tr>'; return; }
-  tbody.innerHTML = data.map(m => `<tr class="border-b border-gray-50 hover:bg-gray-50">
+  let filtered = supportRawData;
+  if (notifActiveFilter === 'unread') filtered = supportRawData.filter(m => !m.is_read);
+  else if (['critical', 'important', 'cases', 'finance', 'system'].includes(notifActiveFilter)) {
+    // این دسته‌بندی‌ها هنوز داده‌ی واقعی ندارن (فقط دموی ثابت بالای صفحه دارن)
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-400">این دسته‌بندی هنوز به داده‌ی واقعی وصل نشده است</td></tr>';
+    return;
+  }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-400">پیامی یافت نشد</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(m => `<tr class="border-b border-gray-50 hover:bg-gray-50">
     <td class="px-4 py-3">${!m.is_read ? '<span class="inline-block bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 ml-1">جدید</span>' : ''}${escapeHtml(m.name)}</td>
     <td class="px-4 py-3" dir="ltr">${toPersianDigits(escapeHtml(m.phone))}</td>
     <td class="px-4 py-3 max-w-[280px]">${escapeHtml(m.message)}</td>
     <td class="px-4 py-3">${formatDate(m.created_at)}</td>
-    <td class="px-4 py-3">${!m.is_read ? `<button class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50" onclick="markMessageRead('${m.id}')">خوانده شد</button>` : '—'}</td>
+    <td class="px-4 py-3">${!m.is_read ? `<button type="button" class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50" onclick="markMessageRead('${m.id}')">خوانده شد</button>` : '—'}</td>
   </tr>`).join('');
 }
+document.addEventListener('click', (e) => {
+  const tabBtn = e.target.closest('.notif-tab');
+  if (tabBtn) {
+    document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
+    tabBtn.classList.add('active');
+    notifActiveFilter = tabBtn.dataset.filter;
+    renderSupportTable();
+  }
+});
 async function markMessageRead(id) {
   const { error } = await sb.from('contact_messages').update({ is_read: true }).eq('id', id);
   if (error) { toast('خطا: ' + error.message, true); return; }
@@ -738,7 +786,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.id === 'notif-send-btn') toast('این قابلیت به‌زودی اضافه می‌شود (نیاز به اتصال سرویس پیامک)');
 });
 
-// ===================== SETTINGS (متصل به دیتابیس واقعی) =====================
+// ===================== SETTINGS =====================
 async function loadSettings() {
   document.querySelector('#settings-pricing-body').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-400">در حال بارگذاری...</td></tr>';
   document.querySelector('#settings-provinces-grid').innerHTML = '<p class="text-gray-400 text-sm col-span-full">در حال بارگذاری...</p>';
@@ -750,27 +798,35 @@ async function loadSettings() {
   ]);
 
   if (pricingRes.error) { document.querySelector('#settings-pricing-body').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(pricingRes.error.message) + '</td></tr>'; }
-  else {
-    pricingRawData = pricingRes.data || [];
-    renderPricingTable();
-  }
+  else { pricingRawData = pricingRes.data || []; renderPricingTable(); }
 
-  if (!settingsRes.error && settingsRes.data) {
-    document.querySelector('#settings-acceptance-time').value = settingsRes.data.value;
-  }
+  if (!settingsRes.error && settingsRes.data) document.querySelector('#settings-acceptance-time').value = settingsRes.data.value;
 
   if (provincesRes.error) { document.querySelector('#settings-provinces-grid').innerHTML = '<p class="text-red-600 text-sm col-span-full">خطا: ' + escapeHtml(provincesRes.error.message) + '</p>'; }
-  else {
-    provincesRawData = provincesRes.data || [];
-    renderProvincesGrid();
-  }
+  else { provincesRawData = provincesRes.data || []; renderProvincesGrid(); }
 
   document.querySelector('#settings-sessions-body').innerHTML = `
     <tr class="border-b border-gray-50"><td class="py-4 px-6 flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-desktop"></i></div><div><p class="font-medium text-gray-900">مرورگر فعلی</p><p class="text-xs text-gray-500">این نشست</p></div></td><td class="py-4 px-6 text-gray-500 font-mono text-sm">—</td><td class="py-4 px-6 text-gray-600">—</td><td class="py-4 px-6"><span class="bg-brand-dark/10 text-brand-dark text-xs px-2 py-1 rounded-md">هم‌اکنون (فعلی)</span></td></tr>`;
 
-  document.querySelector('#settings-log-feed').innerHTML = `
-    <div class="bg-gray-50 p-4 rounded-xl border-r-4 border-brand-dark flex flex-col gap-2"><div class="flex justify-between items-start"><div class="flex items-center gap-2"><i class="fa-solid fa-right-to-bracket text-brand-dark"></i><span class="text-sm font-semibold">ورود موفق</span></div><span class="text-xs text-gray-500">اکنون</span></div><p class="text-sm text-gray-500">ورود موفقیت‌آمیز ${escapeHtml(PROFILE?.full_name || '')} به سیستم.</p></div>
-    <p class="text-xs text-gray-400 text-center py-4">لاگ سیستم هنوز به دیتابیس متصل نشده است</p>`;
+  loadActivityLog();
+}
+
+async function loadActivityLog() {
+  const box = document.querySelector('#settings-log-feed');
+  box.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">در حال بارگذاری...</p>';
+  const { data, error } = await sb.from('admin_activity_log').select('*').order('created_at', { ascending: false }).limit(30);
+  if (error) { box.innerHTML = '<p class="text-red-600 text-sm text-center py-4">خطا: ' + escapeHtml(error.message) + '</p>'; return; }
+  if (!data || data.length === 0) { box.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">هنوز فعالیتی ثبت نشده است</p>'; return; }
+
+  const iconMap = { login: 'fa-right-to-bracket', logout: 'fa-right-from-bracket', pricing_update: 'fa-tags', province_toggle: 'fa-map', settings_update: 'fa-gear' };
+  box.innerHTML = data.map(log => `
+    <div class="bg-gray-50 p-4 rounded-xl border-r-4 border-brand-dark flex flex-col gap-2">
+      <div class="flex justify-between items-start">
+        <div class="flex items-center gap-2"><i class="fa-solid ${iconMap[log.action_type] || 'fa-circle-info'} text-brand-dark"></i><span class="text-sm font-semibold">${escapeHtml(log.admin_name)}</span></div>
+        <span class="text-xs text-gray-500">${formatDateTime(log.created_at)}</span>
+      </div>
+      <p class="text-sm text-gray-500">${escapeHtml(log.description)}</p>
+    </div>`).join('');
 }
 
 function renderPricingTable() {
@@ -778,18 +834,22 @@ function renderPricingTable() {
     <td class="py-3 px-4 font-medium text-gray-900">${escapeHtml(row.category)}</td>
     <td class="py-3 px-4 text-gray-600">${escapeHtml(row.subcategory)}</td>
     <td class="py-3 px-4"><input class="pricing-input bg-gray-50 border border-gray-200 rounded-md px-3 py-1 w-32 text-left" dir="ltr" type="text" value="${toPersianDigits(Number(row.price).toLocaleString('en-US'))}"></td>
-    <td class="py-3 px-4"><button onclick="savePricingRow('${row.id}', this)" class="text-brand-dark text-xs px-3 py-1.5 rounded-lg border border-brand-dark/30 hover:bg-brand-dark/10">ذخیره</button></td>
+    <td class="py-3 px-4"><button type="button" onclick="savePricingRow('${row.id}', this)" class="text-brand-dark text-xs px-3 py-1.5 rounded-lg border border-brand-dark/30 hover:bg-brand-dark/10">ذخیره</button></td>
   </tr>`).join('');
 }
 async function savePricingRow(id, btn) {
   const row = btn.closest('tr');
   const input = row.querySelector('.pricing-input');
+  const category = row.children[0].textContent;
+  const subcategory = row.children[1].textContent;
   const raw = input.value.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\d]/g, '');
   const price = Number(raw);
   if (!price || price <= 0) { toast('مبلغ نامعتبر است', true); return; }
   const { error } = await sb.from('case_pricing').update({ price }).eq('id', id);
   if (error) { toast('خطا: ' + error.message, true); return; }
   toast('تعرفه ذخیره شد');
+  await logActivity('pricing_update', `${PROFILE.full_name} تعرفه‌ی «${category} - ${subcategory}» را به ${formatMoney(price)} تومان تغییر داد`);
+  loadActivityLog();
 }
 
 function renderProvincesGrid() {
@@ -809,6 +869,8 @@ document.addEventListener('change', async (e) => {
     const { error } = await sb.from('active_provinces').update({ is_active: isActive }).eq('province', province);
     if (error) { toast('خطا: ' + error.message, true); e.target.checked = !isActive; return; }
     toast(`استان ${province} ${isActive ? 'فعال' : 'غیرفعال'} شد`);
+    await logActivity('province_toggle', `${PROFILE.full_name} استان «${province}» را ${isActive ? 'فعال' : 'غیرفعال'} کرد`);
+    loadActivityLog();
   }
 });
 document.addEventListener('click', async (e) => {
@@ -818,6 +880,8 @@ document.addEventListener('click', async (e) => {
     const { error } = await sb.from('app_settings').update({ value: String(val), updated_at: new Date().toISOString() }).eq('key', 'case_acceptance_minutes');
     if (error) { toast('خطا: ' + error.message, true); return; }
     toast('زمان پذیرش پرونده ذخیره شد');
+    await logActivity('settings_update', `${PROFILE.full_name} زمان پذیرش پرونده را به ${toPersianDigits(val)} دقیقه تغییر داد`);
+    loadActivityLog();
   }
 });
 document.querySelector('#settings-dark-toggle')?.addEventListener('change', () => {
