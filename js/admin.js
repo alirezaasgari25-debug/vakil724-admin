@@ -9,34 +9,8 @@ let financeYearChartInstance = null, reportsCasesChartInstance = null, reportsIn
 let clientsRawData = [], clientsCasesMap = {}, clientsCaseStatusMap = {};
 let lawyersRawData = [], lawyersActiveCasesMap = {};
 let casesRawData = [], casesNameByPhone = {}, casesLawyerByCaseId = {};
+let pricingRawData = [], provincesRawData = [];
 const IRAN_PROVINCES = ['آذربایجان شرقی', 'آذربایجان غربی', 'اردبیل', 'اصفهان', 'البرز', 'ایلام', 'بوشهر', 'تهران', 'چهارمحال و بختیاری', 'خراسان جنوبی', 'خراسان رضوی', 'خراسان شمالی', 'خوزستان', 'زنجان', 'سمنان', 'سیستان و بلوچستان', 'فارس', 'قزوین', 'قم', 'کردستان', 'کرمان', 'کرمانشاه', 'کهگیلویه و بویراحمد', 'گلستان', 'گیلان', 'لرستان', 'مازندران', 'مرکزی', 'هرمزگان', 'همدان', 'یزد'];
-
-const PRICING_DATA = [
-  { cat: 'کیفری', sub: 'تخلفات رانندگی', price: 5000000 },
-  { cat: 'کیفری', sub: 'اموال/مالی، حقوق معنوی، مواد مخدر، کلاهبرداری اینترنتی، هک', price: 9000000 },
-  { cat: 'کیفری', sub: 'جعل/تخریب رایانه‌ای، آبرو و حیثیت رایانه‌ای', price: 11000000 },
-  { cat: 'کیفری', sub: 'منافی عفت، خشونت خانوادگی، هتک حرمت منزل، جاسوسی رایانه‌ای', price: 13000000 },
-  { cat: 'کیفری', sub: 'تمامیت جسمانی/قتل، امنیت کشور', price: 15000000 },
-  { cat: 'کیفری', sub: 'سایر موارد کیفری', price: 10000000 },
-  { cat: 'حقوقی', sub: 'مطالبه اجور، چک/سفته، استرداد لاشه، مطالبه ثمن، صلح و سازش، استرداد اموال، سهم‌الشرکه', price: 7000000 },
-  { cat: 'حقوقی', sub: 'الزام به سند، ابطال سند، تخلیه ید، اجاره‌بها، حق کسب، اجرت‌المثل، زوجیت/نسب/حجر، خلع ید/افراز، مزاحمت/تصرف، اعتراض به ثبت', price: 9000000 },
-  { cat: 'حقوقی', sub: 'تقسیم ترکه، ابطال سهام، خسارت، ضرر و زیان، اختلاف پیمان، ابطال اجرائیه', price: 11000000 },
-  { cat: 'حقوقی', sub: 'حق تالیف/اختراع، دعاوی موجر/مستاجر پیچیده', price: 13000000 },
-  { cat: 'حقوقی', sub: 'سایر موارد حقوقی', price: 10000000 },
-  { cat: 'خانواده', sub: 'نامزدی، جهیزیه، تمکین/نشوز', price: 7000000 },
-  { cat: 'خانواده', sub: 'مهریه، نفقه، حضانت، نسب، نکاح، شروط ضمن عقد، ازدواج مجدد', price: 9000000 },
-  { cat: 'خانواده', sub: 'طلاق، رشد/حجر، ولایت قهری، غایب مفقودالاثر، سرپرستی', price: 11000000 },
-  { cat: 'خانواده', sub: 'اهدای جنین، تغییر جنسیت', price: 13000000 },
-  { cat: 'خانواده', sub: 'سایر موارد خانواده', price: 9000000 },
-  { cat: 'تجاری', sub: 'اسناد تجاری، قراردادهای تجاری، تجار و بازرگانان', price: 11000000 },
-  { cat: 'تجاری', sub: 'شرکت‌های تجاری، علائم تجاری، طرح‌های صنعتی', price: 13000000 },
-  { cat: 'تجاری', sub: 'ورشکستگی تجار', price: 15000000 },
-  { cat: 'تجاری', sub: 'سایر موارد تجاری', price: 13000000 },
-  { cat: 'کار', sub: 'عدم پرداخت حقوق، مطالبه مزایا، عیدی/پاداش، عدم تنظیم قرارداد', price: 5000000 },
-  { cat: 'کار', sub: 'حق سنوات، عدم واریز بیمه، اثبات رابطه کاری، استعفا/تسویه', price: 7000000 },
-  { cat: 'کار', sub: 'اخراج غیرقانونی', price: 9000000 },
-  { cat: 'کار', sub: 'سایر موارد کار', price: 7000000 },
-];
 
 function toast(msg, isError) {
   const el = document.querySelector('#toast');
@@ -764,22 +738,32 @@ document.addEventListener('click', async (e) => {
   if (e.target.id === 'notif-send-btn') toast('این قابلیت به‌زودی اضافه می‌شود (نیاز به اتصال سرویس پیامک)');
 });
 
-// ===================== SETTINGS =====================
-function loadSettings() {
-  const pricingBody = document.querySelector('#settings-pricing-body');
-  pricingBody.innerHTML = PRICING_DATA.map(row => `<tr class="border-b border-gray-50">
-    <td class="py-3 px-4 font-medium text-gray-900">${escapeHtml(row.cat)}</td>
-    <td class="py-3 px-4 text-gray-600">${escapeHtml(row.sub)}</td>
-    <td class="py-3 px-4"><input class="bg-gray-50 border border-gray-200 rounded-md px-3 py-1 w-32 text-left" dir="ltr" type="text" value="${toPersianDigits(row.price.toLocaleString('en-US'))}"></td>
-    <td class="py-3 px-4"><button onclick="toast('این قابلیت به‌زودی اضافه می‌شود')" class="text-brand-dark text-xs px-3 py-1.5 rounded-lg border border-brand-dark/30 hover:bg-brand-dark/10">ویرایش</button></td>
-  </tr>`).join('');
+// ===================== SETTINGS (متصل به دیتابیس واقعی) =====================
+async function loadSettings() {
+  document.querySelector('#settings-pricing-body').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-400">در حال بارگذاری...</td></tr>';
+  document.querySelector('#settings-provinces-grid').innerHTML = '<p class="text-gray-400 text-sm col-span-full">در حال بارگذاری...</p>';
 
-  const provincesGrid = document.querySelector('#settings-provinces-grid');
-  provincesGrid.innerHTML = IRAN_PROVINCES.map(p => `
-    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-      <span class="text-sm text-gray-800">${escapeHtml(p)}</span>
-      <label class="relative inline-flex items-center cursor-pointer"><input checked class="sr-only peer" type="checkbox" onclick="toast('این قابلیت به‌زودی اضافه می‌شود')"><div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-brand-dark after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:-translate-x-full relative"></div></label>
-    </div>`).join('');
+  const [pricingRes, settingsRes, provincesRes] = await Promise.all([
+    sb.from('case_pricing').select('*').order('category'),
+    sb.from('app_settings').select('*').eq('key', 'case_acceptance_minutes').single(),
+    sb.from('active_provinces').select('*').order('province'),
+  ]);
+
+  if (pricingRes.error) { document.querySelector('#settings-pricing-body').innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-600">خطا: ' + escapeHtml(pricingRes.error.message) + '</td></tr>'; }
+  else {
+    pricingRawData = pricingRes.data || [];
+    renderPricingTable();
+  }
+
+  if (!settingsRes.error && settingsRes.data) {
+    document.querySelector('#settings-acceptance-time').value = settingsRes.data.value;
+  }
+
+  if (provincesRes.error) { document.querySelector('#settings-provinces-grid').innerHTML = '<p class="text-red-600 text-sm col-span-full">خطا: ' + escapeHtml(provincesRes.error.message) + '</p>'; }
+  else {
+    provincesRawData = provincesRes.data || [];
+    renderProvincesGrid();
+  }
 
   document.querySelector('#settings-sessions-body').innerHTML = `
     <tr class="border-b border-gray-50"><td class="py-4 px-6 flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-desktop"></i></div><div><p class="font-medium text-gray-900">مرورگر فعلی</p><p class="text-xs text-gray-500">این نشست</p></div></td><td class="py-4 px-6 text-gray-500 font-mono text-sm">—</td><td class="py-4 px-6 text-gray-600">—</td><td class="py-4 px-6"><span class="bg-brand-dark/10 text-brand-dark text-xs px-2 py-1 rounded-md">هم‌اکنون (فعلی)</span></td></tr>`;
@@ -787,12 +771,58 @@ function loadSettings() {
   document.querySelector('#settings-log-feed').innerHTML = `
     <div class="bg-gray-50 p-4 rounded-xl border-r-4 border-brand-dark flex flex-col gap-2"><div class="flex justify-between items-start"><div class="flex items-center gap-2"><i class="fa-solid fa-right-to-bracket text-brand-dark"></i><span class="text-sm font-semibold">ورود موفق</span></div><span class="text-xs text-gray-500">اکنون</span></div><p class="text-sm text-gray-500">ورود موفقیت‌آمیز ${escapeHtml(PROFILE?.full_name || '')} به سیستم.</p></div>
     <p class="text-xs text-gray-400 text-center py-4">لاگ سیستم هنوز به دیتابیس متصل نشده است</p>`;
-
-  document.querySelector('#settings-save-time')?.addEventListener('click', () => toast('این قابلیت به‌زودی اضافه می‌شود'), { once: true });
-  document.querySelector('#settings-dark-toggle')?.addEventListener('change', () => {
-    document.body.classList.toggle('dark');
-  }, { once: true });
 }
+
+function renderPricingTable() {
+  document.querySelector('#settings-pricing-body').innerHTML = pricingRawData.map(row => `<tr class="border-b border-gray-50" data-pricing-id="${row.id}">
+    <td class="py-3 px-4 font-medium text-gray-900">${escapeHtml(row.category)}</td>
+    <td class="py-3 px-4 text-gray-600">${escapeHtml(row.subcategory)}</td>
+    <td class="py-3 px-4"><input class="pricing-input bg-gray-50 border border-gray-200 rounded-md px-3 py-1 w-32 text-left" dir="ltr" type="text" value="${toPersianDigits(Number(row.price).toLocaleString('en-US'))}"></td>
+    <td class="py-3 px-4"><button onclick="savePricingRow('${row.id}', this)" class="text-brand-dark text-xs px-3 py-1.5 rounded-lg border border-brand-dark/30 hover:bg-brand-dark/10">ذخیره</button></td>
+  </tr>`).join('');
+}
+async function savePricingRow(id, btn) {
+  const row = btn.closest('tr');
+  const input = row.querySelector('.pricing-input');
+  const raw = input.value.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\d]/g, '');
+  const price = Number(raw);
+  if (!price || price <= 0) { toast('مبلغ نامعتبر است', true); return; }
+  const { error } = await sb.from('case_pricing').update({ price }).eq('id', id);
+  if (error) { toast('خطا: ' + error.message, true); return; }
+  toast('تعرفه ذخیره شد');
+}
+
+function renderProvincesGrid() {
+  document.querySelector('#settings-provinces-grid').innerHTML = provincesRawData.map(p => `
+    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+      <span class="text-sm text-gray-800">${escapeHtml(p.province)}</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input ${p.is_active ? 'checked' : ''} class="sr-only peer province-toggle" data-province="${escapeHtml(p.province)}" type="checkbox">
+        <div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-brand-dark after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:-translate-x-full relative"></div>
+      </label>
+    </div>`).join('');
+}
+document.addEventListener('change', async (e) => {
+  if (e.target.classList.contains('province-toggle')) {
+    const province = e.target.dataset.province;
+    const isActive = e.target.checked;
+    const { error } = await sb.from('active_provinces').update({ is_active: isActive }).eq('province', province);
+    if (error) { toast('خطا: ' + error.message, true); e.target.checked = !isActive; return; }
+    toast(`استان ${province} ${isActive ? 'فعال' : 'غیرفعال'} شد`);
+  }
+});
+document.addEventListener('click', async (e) => {
+  if (e.target.id === 'settings-save-time') {
+    const val = document.querySelector('#settings-acceptance-time').value;
+    if (!val || Number(val) < 5) { toast('عدد نامعتبر است', true); return; }
+    const { error } = await sb.from('app_settings').update({ value: String(val), updated_at: new Date().toISOString() }).eq('key', 'case_acceptance_minutes');
+    if (error) { toast('خطا: ' + error.message, true); return; }
+    toast('زمان پذیرش پرونده ذخیره شد');
+  }
+});
+document.querySelector('#settings-dark-toggle')?.addEventListener('change', () => {
+  document.body.classList.toggle('dark');
+});
 
 // ===================== USERS =====================
 async function loadUsers() {
